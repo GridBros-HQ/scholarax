@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: multicampus_sms_db
+    environment:
+      POSTGRES_USER: sms_admin
+      POSTGRES_PASSWORD: secure_password_2026
+      POSTGRES_DB: multicampus_sms
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:
