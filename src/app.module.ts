@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
-import { AuthModule } from './auth/auth.module'; // Double-check this line exists
+import { AuthModule } from './auth/auth.module';
+import { CampusModule } from './campus/campus.module';
 import { envValidationSchema } from './config/env.validation';
 
 @Module({
@@ -12,7 +13,8 @@ import { envValidationSchema } from './config/env.validation';
       cache: true,
     }),
     PrismaModule,
-    AuthModule, // Double-check this line exists
+    AuthModule,
+    CampusModule,
   ],
   controllers: [],
   providers: [],
