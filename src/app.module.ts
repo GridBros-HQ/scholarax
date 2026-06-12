@@ -1,3 +1,4 @@
+import { ProfilesModule } from './profiles/profiles.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
@@ -17,8 +18,12 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     PrismaModule,
     AuthModule,
     CampusModule,
+<<<<<<< Updated upstream
     InventoryModule,
     AuditLogModule,
+=======
+    ProfilesModule,
+>>>>>>> Stashed changes
   ],
   controllers: [],
   providers: [],
