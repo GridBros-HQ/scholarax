@@ -5,11 +5,15 @@ import { Pool } from 'pg';
 import { tenantContext } from './tenant-context';
 
 @Injectable()
-export class PrismaService implements OnModuleInit {
+// 1. We extend PrismaClient so TypeScript recognizes $transaction, user, inventoryItem, etc.
+export class PrismaService extends PrismaClient implements OnModuleInit {
   private baseClient: PrismaClient;
   public client: any;
 
   constructor() {
+    // 2. Call super() to satisfy the base class constructor
+    super();
+
     // 1. Initialize a native PostgreSQL connection pool
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
@@ -24,7 +28,7 @@ export class PrismaService implements OnModuleInit {
     // 4. Build the extended client layer to inject Row-Level Security variables
     this.client = this.baseClient.$extends({
       query: {
-        $allOperations: async ({ model, operation, args, query }) => {
+        $allOperations: async ({ args, query }) => {
           const store = tenantContext.getStore();
           const campusId = store?.campusId;
 

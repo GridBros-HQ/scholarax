@@ -4,6 +4,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CampusModule } from './campus/campus.module';
 import { envValidationSchema } from './config/env.validation';
+import { InventoryModule } from './inventory/inventory.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { envValidationSchema } from './config/env.validation';
     PrismaModule,
     AuthModule,
     CampusModule,
+    InventoryModule,
+    AuditLogModule,
   ],
   controllers: [],
   providers: [],
