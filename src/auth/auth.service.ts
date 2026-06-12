@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -16,35 +16,70 @@ export class AuthService {
   }
 
   async register(data: any) {
-    const existingUser = await this.prisma.user.findUnique({ where: { email: data.email } });
-    if (existingUser) {
-      throw new ConflictException('A user account with this email address already exists');
-    }
-
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-    return this.prisma.user.create({
-      data: {
+   // 1. Correctly query by the multi-tenant compound unique criteria
+   const existingUser = await this.prisma.user.findUnique({
+    where: {
+      campusId_email: {
         email: data.email,
-        password: hashedPassword,
-        roles: data.roles || ['STUDENT'],
         campusId: data.campusId,
       },
-      select: { id: true, email: true, roles: true, campusId: true },
-    });
+    },
+   });
+
+   if (existingUser) {
+    throw new BadRequestException('User with this email already exists on this campus');
+   }
+
+   // 2. Hash the password
+   const hashedPassword = await bcrypt.hash(data.password, 10);
+
+   
+  // 3. Create the user using the exact schema fields from Cornelius's database layout
+  return this.prisma.user.create({
+    data: {
+      email: data.email,
+      passwordHash: hashedPassword,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone, // 👈 Keep ONLY this one!
+      campusId: data.campusId,
+      isActive: true,
+    },
+  });
   }
-
   async login(credentials: any) {
-    const user = await this.prisma.user.findUnique({ where: { email: credentials.email } });
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials provided');
-    }
+    // 1. Look up the user by the multi-tenant compound unique criteria
+    const user = await this.prisma.user.findUnique({
+    where: {
+      campusId_email: {
+        email: credentials.email,
+        campusId: credentials.campusId, // We pass the campus context here
+      },
+    },
+   });
 
-    const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials provided');
-    }
+   // 2. If user doesn't exist, block them
+   if (!user) {
+    throw new BadRequestException('Invalid credentials');
+   }
 
-    const payload = { sub: user.id, email: user.email, roles: user.roles, campusId: user.campusId };
-    return { access_token: this.jwtService.sign(payload) };
+   // 3. Verify their password using bcrypt against the correct 'passwordHash' column
+   const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash);
+   if (!isPasswordValid) {
+    throw new BadRequestException('Invalid credentials');
+   }
+
+   // 4. Generate your secure JWT accessToken payload
+   const payload = { sub: user.id, email: user.email, campusId: user.campusId };
+  
+   return {
+    accessToken: this.jwtService.sign(payload),
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    },
+   };
   }
 }
