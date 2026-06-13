@@ -7,6 +7,7 @@ import { CampusModule } from './campus/campus.module';
 import { envValidationSchema } from './config/env.validation';
 import { InventoryModule } from './inventory/inventory.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -18,12 +19,10 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     PrismaModule,
     AuthModule,
     CampusModule,
-<<<<<<< Updated upstream
     InventoryModule,
     AuditLogModule,
-=======
     ProfilesModule,
->>>>>>> Stashed changes
+    RolesModule,
   ],
   controllers: [],
   providers: [],

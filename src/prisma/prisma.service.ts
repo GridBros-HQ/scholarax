@@ -1,8 +1,11 @@
+import * as dotenv from 'dotenv';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { tenantContext } from './tenant-context';
+
+dotenv.config();
 
 @Injectable()
 // 1. We extend PrismaClient so TypeScript recognizes $transaction, user, inventoryItem, etc.
@@ -11,9 +14,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   public client: any;
 
   constructor() {
-    // 2. Call super() to satisfy the base class constructor
-    super();
-
     // 1. Initialize a native PostgreSQL connection pool
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
@@ -22,10 +22,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     // 2. Wrap the connection pool inside Prisma 7's required Driver Adapter
     const adapter = new PrismaPg(pool);
 
-    // 3. Construct the lightweight Prisma 7 Client with the active adapter
-    this.baseClient = new PrismaClient({ adapter });
+    // 3. Call super() with the active adapter to satisfy Prisma 7 requirements
+    super({ adapter });
 
-    // 4. Build the extended client layer to inject Row-Level Security variables
+    // 4. Use this constructed Prisma client as the base client
+    this.baseClient = this;
+
+    // 5. Build the extended client layer to inject Row-Level Security variables
     this.client = this.baseClient.$extends({
       query: {
         $allOperations: async ({ args, query }) => {

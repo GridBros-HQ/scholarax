@@ -6,9 +6,9 @@ import { CreateGuardianProfileDto } from './dto/create-guardian-profile.dto';
 // Importing the RbacGuard and Roles from the roles module as specified.
 // Assuming standard relative paths based on NestJS structure.
 // @ts-ignore
-import { RbacGuard } from '../../roles/guards/rbac.guard';
+import { RbacGuard } from '../roles/guards/rbac.guard';
 // @ts-ignore
-import { Roles } from '../../roles/decorators/roles.decorator';
+import { Roles } from '../roles/decorators/roles.decorator';
 
 @Controller('profiles')
 @UseGuards(RbacGuard)

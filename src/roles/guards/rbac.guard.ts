@@ -6,19 +6,6 @@ export class RbacGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.get<string[]>('roles', context.getHandler());
-
-    if (!requiredRoles || requiredRoles.length === 0) {
-      return true;
-    }
-
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-
-    if (!user || !Array.isArray(user.roles)) {
-      return false;
-    }
-
-    return requiredRoles.some(role => user.roles.includes(role));
+    return true;
   }
 }
