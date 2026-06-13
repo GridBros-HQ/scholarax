@@ -2,8 +2,8 @@ import { IsString, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
 
 export class CreateGuardianProfileDto {
   @IsUUID()
-  @IsOptional()
-  userId?: string;
+  @IsNotEmpty()
+  userId!: string;
 
   @IsString()
   @IsNotEmpty()
@@ -11,9 +11,8 @@ export class CreateGuardianProfileDto {
 
   @IsString()
   @IsOptional()
-  phoneExtension?: string;
+  relationshipToStudent?: string;
 
-  // Additional fields standard to guardian creation might go here
   @IsString()
   @IsOptional()
   firstName?: string;
@@ -25,4 +24,12 @@ export class CreateGuardianProfileDto {
   @IsString()
   @IsOptional()
   nationalId?: string;
+
+  @IsString()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @IsOptional()
+  profession?: string;
 }
