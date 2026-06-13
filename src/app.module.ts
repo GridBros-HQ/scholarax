@@ -8,6 +8,7 @@ import { envValidationSchema } from './config/env.validation';
 import { InventoryModule } from './inventory/inventory.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { RolesModule } from './roles/roles.module';
+import { ClassesModule } from './classes/classes.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { RolesModule } from './roles/roles.module';
     AuditLogModule,
     ProfilesModule,
     RolesModule,
+    ClassesModule,
   ],
   controllers: [],
   providers: [],
