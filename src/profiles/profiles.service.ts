@@ -30,17 +30,13 @@ export class ProfilesService {
     }
 
     // Creating Staff profile tied back to the User.
-    // Casting to any to allow contactString and phoneExtension which are mandated 
-    // by the user but might not be in the current Prisma schema yet.
     return this.prisma.staff.create({
       data: {
         user_id: dto.userId,
-        contactString: dto.contactString,
-        phoneExtension: dto.phoneExtension,
         employee_code: dto.employeeCode || `EMP-${Date.now()}`,
         designation: dto.designation || 'Staff',
         joining_date: new Date(),
-      } as any,
+      },
     });
   }
 

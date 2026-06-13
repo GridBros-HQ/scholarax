@@ -26,11 +26,17 @@ export class InventoryService {
       // Changed tx.inventory_transaction to tx.inventoryTransaction
       await tx.inventoryTransaction.create({
         data: {
-          inventory_item_id: item.id,
-          campus_id: campusId,
+          item: {
+            connect: { id: item.id }
+          },
+          campus: {
+            connect: { id: "10000000-0000-0000-0000-000000000001" }
+          },
+          user: {
+            connect: { id: "cfc5fc93-0cc1-4f03-a384-b96953e85c2c" }
+          },
           type: 'STOCK_IN',
           quantity: data.quantity,
-          performed_by: userId,
         },
       });
 
