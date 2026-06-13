@@ -11,7 +11,7 @@ export class AuditLogService {
     entity_type: string;
     entity_id: string;
   }) {
-    return this.prisma.auditLog.create({
+    return this.prisma.client.auditLog.create({
       data: {
         user_id: params.user_id,
         action: params.action,

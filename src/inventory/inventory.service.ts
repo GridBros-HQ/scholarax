@@ -10,7 +10,7 @@ export class InventoryService {
   ) {}
 
   async createItem(data: any, userId: string, campusId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       // Changed tx.inventory_item to tx.inventoryItem
       const item = await tx.inventoryItem.create({
         data: {
@@ -47,7 +47,7 @@ export class InventoryService {
 
   async findAllItems(campusId: string) {
     // Changed this.prisma.inventory_item to this.prisma.inventoryItem
-    return this.prisma.inventoryItem.findMany({
+    return this.prisma.client.inventoryItem.findMany({
       where: { campus_id: campusId },
       orderBy: { updated_at: 'desc' },
     });
