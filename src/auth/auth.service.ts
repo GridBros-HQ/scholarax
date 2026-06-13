@@ -6,18 +6,13 @@ import * as bcrypt from 'bcrypt';
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly prismaService: PrismaService,
+    private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
 
-  // This clean getter tells TypeScript to allow dynamic access to your 37 schema tables via the wrapper
-  private get prisma() {
-    return (this.prismaService as any);
-  }
-
   async register(data: any) {
    // 1. Correctly query by the multi-tenant compound unique criteria
-   const existingUser = await this.prisma.user.findUnique({
+   const existingUser = await this.prisma.client.user.findUnique({
     where: {
       campusId_email: {
         email: data.email,
@@ -35,7 +30,7 @@ export class AuthService {
 
    
   // 3. Create the user using the exact schema fields from Cornelius's database layout
-  return this.prisma.user.create({
+  return this.prisma.client.user.create({
     data: {
       email: data.email,
       passwordHash: hashedPassword,
@@ -49,7 +44,7 @@ export class AuthService {
   }
   async login(credentials: any) {
     // 1. Look up the user by the multi-tenant compound unique criteria
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.client.user.findUnique({
     where: {
       campusId_email: {
         email: credentials.email,

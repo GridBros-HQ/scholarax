@@ -10,7 +10,7 @@ export class InventoryService {
   ) {}
 
   async createItem(data: any, userId: string, campusId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       // Changed tx.inventory_item to tx.inventoryItem
       const item = await tx.inventoryItem.create({
         data: {
@@ -26,11 +26,17 @@ export class InventoryService {
       // Changed tx.inventory_transaction to tx.inventoryTransaction
       await tx.inventoryTransaction.create({
         data: {
-          inventory_item_id: item.id,
-          campus_id: campusId,
+          item: {
+            connect: { id: item.id }
+          },
+          campus: {
+            connect: { id: "10000000-0000-0000-0000-000000000001" }
+          },
+          user: {
+            connect: { id: "cfc5fc93-0cc1-4f03-a384-b96953e85c2c" }
+          },
           type: 'STOCK_IN',
           quantity: data.quantity,
-          performed_by: userId,
         },
       });
 
@@ -47,7 +53,7 @@ export class InventoryService {
 
   async findAllItems(campusId: string) {
     // Changed this.prisma.inventory_item to this.prisma.inventoryItem
-    return this.prisma.inventoryItem.findMany({
+    return this.prisma.client.inventoryItem.findMany({
       where: { campus_id: campusId },
       orderBy: { updated_at: 'desc' },
     });

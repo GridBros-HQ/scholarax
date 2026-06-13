@@ -1,31 +1,30 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import * as dotenv from 'dotenv';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { tenantContext } from './tenant-context';
 
+dotenv.config();
+
 @Injectable()
-// 1. We extend PrismaClient so TypeScript recognizes $transaction, user, inventoryItem, etc.
-export class PrismaService extends PrismaClient implements OnModuleInit {
-  private baseClient: PrismaClient;
-  public client: any;
+export class PrismaService implements OnModuleInit, OnModuleDestroy {
+  private readonly baseClient: PrismaClient;
+  public readonly client: any;
 
   constructor() {
-    // 2. Call super() to satisfy the base class constructor
-    super();
-
-    // 1. Initialize a native PostgreSQL connection pool
+    // Initialize a native PostgreSQL connection pool
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
     });
 
-    // 2. Wrap the connection pool inside Prisma 7's required Driver Adapter
+    // Wrap the connection pool inside Prisma 7's required Driver Adapter
     const adapter = new PrismaPg(pool);
 
-    // 3. Construct the lightweight Prisma 7 Client with the active adapter
+    // Construct the lightweight Prisma 7 Client with the active adapter
     this.baseClient = new PrismaClient({ adapter });
 
-    // 4. Build the extended client layer to inject Row-Level Security variables
+    // Build the extended client layer to inject Row-Level Security variables
     this.client = this.baseClient.$extends({
       query: {
         $allOperations: async ({ args, query }) => {
@@ -46,11 +45,22 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       },
     });
 
-    // 5. Proxy all model properties (user, campus, etc.) straight onto this service class
-    Object.assign(this, this.client);
+    // Proxy incoming calls to transparently route model calls (e.g., this.prisma.user) to this.client
+    return new Proxy(this, {
+      get: (target, prop) => {
+        if (prop in target) {
+          return (target as any)[prop];
+        }
+        return target.client[prop];
+      },
+    });
   }
 
   async onModuleInit() {
-    // Connection pool handles initialization automatically upon first database transaction
+    await this.baseClient.$connect();
+  }
+
+  async onModuleDestroy() {
+    await this.baseClient.$disconnect();
   }
 }
