@@ -9,6 +9,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { RolesModule } from './roles/roles.module';
 import { ClassesModule } from './classes/classes.module';
+import { StreamsModule } from './streams/streams.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ClassesModule } from './classes/classes.module';
     ProfilesModule,
     RolesModule,
     ClassesModule,
+    StreamsModule,
   ],
   controllers: [],
   providers: [],
