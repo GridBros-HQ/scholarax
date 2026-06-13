@@ -34,8 +34,8 @@ export class ProfilesController {
   }
 
   @Get('guardians')
-  @Roles('ADMIN', 'SUPERVISOR')
-  getGuardians() {
-    return this.profilesService.getGuardianByTenant();
+  @Roles('ADMIN', 'SUPERVISOR', 'STAFF')
+  findAllGuardiansByTenant() {
+    return this.profilesService.findAllGuardiansByTenant();
   }
 }

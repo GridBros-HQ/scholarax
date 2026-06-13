@@ -41,28 +41,26 @@ export class ProfilesService {
   }
 
   async createGuardian(dto: CreateGuardianProfileDto) {
-    const campusId = this.getCampusId();
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+    });
 
-    if (dto.userId) {
-      // Ensure the core user exists and belongs to this campus
-      const user = await this.prisma.user.findFirst({
-        where: { id: dto.userId, campusId },
-      });
-      if (!user) {
-        throw new NotFoundException('User not found in this campus');
-      }
+    if (!user) {
+      throw new NotFoundException('User not found in this campus');
     }
 
-    // Creating Guardian profile tied back to the User.
     return this.prisma.guardian.create({
       data: {
-        user_id: dto.userId,
-        contactString: dto.contactString,
-        phoneExtension: dto.phoneExtension,
         first_name: dto.firstName || 'Unknown',
         last_name: dto.lastName || 'Unknown',
         national_id: dto.nationalId || `ID-${Date.now()}`,
-      } as any,
+        phone_number: dto.contactString,
+        profession: dto.profession,
+        email: dto.email,
+        user: {
+          connect: { id: dto.userId },
+        },
+      },
     });
   }
 
@@ -82,19 +80,10 @@ export class ProfilesService {
     });
   }
 
-  async getGuardianByTenant() {
-    const campusId = this.getCampusId();
-    
-    // Isolate records using campusId through the core 'User' relationship scope.
+  async findAllGuardiansByTenant() {
     return this.prisma.guardian.findMany({
-      where: {
-        user: {
-          campusId: campusId,
-        },
-      },
-      include: {
-        user: true,
-      },
+      orderBy: { created_at: 'desc' },
+      include: { user: true },
     });
   }
 }
