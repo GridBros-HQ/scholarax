@@ -10,6 +10,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
 import { RolesModule } from './roles/roles.module';
 import { ClassesModule } from './classes/classes.module';
 import { StreamsModule } from './streams/streams.module';
+import { AcademicYearsModule } from './academic-years/academic-years.module'; 
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { StreamsModule } from './streams/streams.module';
     RolesModule,
     ClassesModule,
     StreamsModule,
+    AcademicYearsModule,
   ],
   controllers: [],
   providers: [],
