@@ -51,10 +51,10 @@ export class ProfilesService {
 
     return this.prisma.guardian.create({
       data: {
-        first_name: dto.firstName || 'Unknown',
-        last_name: dto.lastName || 'Unknown',
-        national_id: dto.nationalId || `ID-${Date.now()}`,
-        phone_number: dto.contactString,
+        firstName: dto.firstName || 'Unknown',
+        lastName: dto.lastName || 'Unknown',
+        nationalId: dto.nationalId || `ID-${Date.now()}`,
+        phoneNumber: dto.contactString,
         profession: dto.profession,
         email: dto.email,
         user: {
@@ -82,7 +82,7 @@ export class ProfilesService {
 
   async findAllGuardiansByTenant() {
     return this.prisma.guardian.findMany({
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
       include: { user: true },
     });
   }
