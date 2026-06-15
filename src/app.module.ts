@@ -11,6 +11,7 @@ import { RolesModule } from './roles/roles.module';
 import { ClassesModule } from './classes/classes.module';
 import { StreamsModule } from './streams/streams.module';
 import { AcademicYearsModule } from './academic-years/academic-years.module'; 
+import { SubjectsModule } from './subjects/subjects.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AcademicYearsModule } from './academic-years/academic-years.module';
     ClassesModule,
     StreamsModule,
     AcademicYearsModule,
+    SubjectsModule,
   ],
   controllers: [],
   providers: [],
