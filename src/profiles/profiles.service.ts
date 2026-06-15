@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStaffProfileDto } from './dto/create-staff-profile.dto';
 import { CreateGuardianProfileDto } from './dto/create-guardian-profile.dto';
+import { CreateStudentDto } from './dto/create-student.dto';
 import { tenantContext } from '../prisma/tenant-context';
 import { PrismaClient } from '@prisma/client';
 
@@ -84,6 +85,64 @@ export class ProfilesService {
     return this.prisma.guardian.findMany({
       orderBy: { createdAt: 'desc' },
       include: { user: true },
+    });
+  }
+
+  async createStudent(dto: CreateStudentDto) {
+    const guardian = await this.prisma.guardian.findUnique({
+      where: { id: dto.guardianId },
+    });
+
+    if (!guardian) {
+      throw new NotFoundException('Target guardian profile not found in this campus');
+    }
+
+    const stream = await this.prisma.stream.findUnique({
+      where: { id: dto.streamId },
+    });
+
+    if (!stream) {
+      throw new NotFoundException('Target stream configuration not found in this campus');
+    }
+
+    return this.prisma.student.create({
+      data: {
+        campus: {
+          connect: { id: this.getCampusId() }
+        },
+        first_name: dto.first_name,
+        last_name: dto.last_name,
+        admission_number: `ADM-${Date.now()}`,
+        date_of_birth: new Date('2010-01-01'), // Default since not provided in dto
+        gender: 'UNKNOWN', // Default since not provided in dto
+        enrollment_date: new Date(),
+        stream: {
+          connect: { id: dto.streamId },
+        },
+        guardians: {
+          create: [
+            {
+              guardian: { connect: { id: dto.guardianId } },
+              relationship_type: 'GUARDIAN',
+              is_primary_contact: true,
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  async findAllStudentsByTenant() {
+    return this.prisma.student.findMany({
+      orderBy: { created_at: 'desc' },
+      include: {
+        guardians: {
+          include: {
+            guardian: true,
+          },
+        },
+        stream: true,
+      },
     });
   }
 }
