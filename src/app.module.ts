@@ -10,6 +10,9 @@ import { AuditLogModule } from './audit-log/audit-log.module';
 import { RolesModule } from './roles/roles.module';
 import { ClassesModule } from './classes/classes.module';
 import { StreamsModule } from './streams/streams.module';
+import { AcademicYearsModule } from './academic-years/academic-years.module';
+import { SubjectsModule } from './subjects/subjects.module';
+import { StudentsModule } from './students/students.module';
 
 @Module({
   imports: [
@@ -27,6 +30,9 @@ import { StreamsModule } from './streams/streams.module';
     RolesModule,
     ClassesModule,
     StreamsModule,
+    AcademicYearsModule,
+    SubjectsModule,
+    StudentsModule
   ],
   controllers: [],
   providers: [],
