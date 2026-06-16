@@ -14,6 +14,7 @@ import { AcademicYearsModule } from './academic-years/academic-years.module';
 import { SubjectsModule } from './subjects/subjects.module';
 import { TimetableModule } from './timetable/timetable.module';
 import { AttendanceModule } from './attendance/attendance.module';
+import { AssessmentModule } from './assessment/assessment.module';
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { AttendanceModule } from './attendance/attendance.module';
     AcademicYearsModule,
     SubjectsModule,
     TimetableModule,    
-    AttendanceModule,   
+    AttendanceModule, 
+    AssessmentModule,   
   ],
   controllers: [],
   providers: [],

@@ -787,3 +787,27 @@ model TimetableSlot {
 
   @@map("timetable_slots")
 }
+
+enum AssessmentType {
+  EXAM
+  QUIZ
+  ASSIGNMENT
+  PROJECT
+  LAB
+}
+
+model Assessment {
+  id               String         @id @default(uuid())
+  campusId         String         @map("campus_id")
+  academicYearId   String         @map("academic_year_id")
+  subjectId        String         @map("subject_id")
+  title            String         @map("title")          // e.g., "Midterm Exam", "CAT 1"
+  type             AssessmentType @map("type")
+  maxPoints        Float          @map("max_points")     // e.g., 100, 30
+  weightPercentage Float          @map("weight_percentage") // e.g., 30% of final grade
+
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@map("assessments")
+}
