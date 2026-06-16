@@ -760,3 +760,30 @@ model AuditLog {
   @@index([timestamp])
   @@map("audit_logs")
 }
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model TimetableSlot {
+  id        String    @id @default(uuid())
+  campusId  String    @map("campus_id")
+  streamId  String    @map("stream_id")
+  subjectId String    @map("subject_id")
+  teacherId String    @map("teacher_id")
+  dayOfWeek DayOfWeek @map("day_of_week")
+  startTime String    @map("start_time") // Stored as "08:00", "09:30", etc.
+  endTime   String    @map("end_time")   // Stored as "09:00", "10:30", etc.
+  room      String?   @map("room")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("timetable_slots")
+}

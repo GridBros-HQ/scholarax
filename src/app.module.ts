@@ -13,6 +13,7 @@ import { StreamsModule } from './streams/streams.module';
 import { AcademicYearsModule } from './academic-years/academic-years.module';
 import { SubjectsModule } from './subjects/subjects.module';
 import { StudentsModule } from './students/students.module';
+import { TimetableModule } from './timetable/timetable.module';
 
 @Module({
   imports: [
@@ -32,7 +33,8 @@ import { StudentsModule } from './students/students.module';
     StreamsModule,
     AcademicYearsModule,
     SubjectsModule,
-    StudentsModule
+    StudentsModule,
+    TimetableModule
   ],
   controllers: [],
   providers: [],
