@@ -14,6 +14,8 @@ import { AcademicYearsModule } from './academic-years/academic-years.module';
 import { SubjectsModule } from './subjects/subjects.module';
 import { TimetableModule } from './timetable/timetable.module';
 import { AttendanceModule } from './attendance/attendance.module';
+// 👇 Both of your new modules now live in harmony here
+import { AssessmentModule } from './assessment/assessment.module';
 import { GradesModule } from './grades/grades.module';
 
 @Module({
@@ -34,9 +36,10 @@ import { GradesModule } from './grades/grades.module';
     StreamsModule,
     AcademicYearsModule,
     SubjectsModule,
-    TimetableModule,    
+    TimetableModule,
     AttendanceModule,
-    GradesModule,
+    AssessmentModule, // 📑 Your Framework
+    GradesModule,     // 📝 His Grading Engine
   ],
   controllers: [],
   providers: [],
