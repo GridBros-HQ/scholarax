@@ -1,16 +1,17 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStudentDto } from './dto/create-student.dto';
+import { PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class StudentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService & PrismaClient) {}
 
   async enrollStudent(dto: CreateStudentDto, campusId?: string) {
     const activeCampusId = campusId || '10000000-0000-0000-0000-000000000001';
 
     try {
-      const student = await this.prisma.client.student.create({
+      const student = await this.prisma.student.create({
         data: {
           first_name: dto.firstName,
           last_name: dto.lastName,

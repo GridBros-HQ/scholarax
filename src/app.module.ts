@@ -1,4 +1,3 @@
-import { ProfilesModule } from './profiles/profiles.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
@@ -7,13 +6,14 @@ import { CampusModule } from './campus/campus.module';
 import { envValidationSchema } from './config/env.validation';
 import { InventoryModule } from './inventory/inventory.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { ProfilesModule } from './profiles/profiles.module';
 import { RolesModule } from './roles/roles.module';
 import { ClassesModule } from './classes/classes.module';
 import { StreamsModule } from './streams/streams.module';
-import { AcademicYearsModule } from './academic-years/academic-years.module';
+import { AcademicYearsModule } from './academic-years/academic-years.module'; 
 import { SubjectsModule } from './subjects/subjects.module';
-import { StudentsModule } from './students/students.module';
 import { TimetableModule } from './timetable/timetable.module';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
@@ -33,8 +33,8 @@ import { TimetableModule } from './timetable/timetable.module';
     StreamsModule,
     AcademicYearsModule,
     SubjectsModule,
-    StudentsModule,
-    TimetableModule
+    TimetableModule,    
+    AttendanceModule,   
   ],
   controllers: [],
   providers: [],
