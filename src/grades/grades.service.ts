@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBulkGradesDto } from './dto/create-bulk-grades.dto';
 
@@ -6,49 +6,41 @@ import { CreateBulkGradesDto } from './dto/create-bulk-grades.dto';
 export class GradesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async recordBulkGrades(dto: CreateBulkGradesDto, campusId: string) {
-    const { assessmentId, records } = dto;
+  /**
+   * Atomically upserts bulk marks arrays under a safe transactional stream
+   */
+  async ingestBulkGrades(campusId: string, dto: CreateBulkGradesDto) {
+    const db = this.prisma as any;
 
-    const assessment = await this.prisma.client.assessment.findUnique({
-      where: { id: assessmentId },
+    // 1. Enforce validation checkpoint on parent assessment rule configuration
+    const assessment = await db.assessment.findUnique({
+      where: { id: dto.assessmentId },
     });
 
     if (!assessment) {
-      throw new NotFoundException('Assessment not found');
+      throw new NotFoundException(
+        `Assessment config record with ID "${dto.assessmentId}" not found.`
+      );
     }
 
-    if (assessment.campus_id !== campusId) {
-      throw new BadRequestException('Assessment does not belong to this campus');
-    }
-
-    for (const record of records) {
-      if (record.score > assessment.maxPoints) {
+    // 2. Validate grade ceiling boundaries against database parameters
+    const ceilingLimit = assessment.maxPoints;
+    for (const record of dto.records) {
+      if (record.score > ceilingLimit) {
         throw new BadRequestException(
-          `Score ${record.score} for student ${record.studentId} exceeds maximum points ${assessment.maxPoints}`,
+          `Invalid Entry: Score of ${record.score} cannot exceed the assessment max limit of ${ceilingLimit} points.`
         );
       }
     }
 
-    return this.prisma.client.$transaction(async (tx) => {
-      for (const record of records) {
-        const student = await tx.student.findFirst({
-          where: {
-            id: record.studentId,
-            campus_id: campusId,
-          },
-        });
-
-        if (!student) {
-          throw new BadRequestException(
-            `Student ${record.studentId} not found or does not belong to this campus`,
-          );
-        }
-
-        await tx.gradeRecord.upsert({
+    // 3. Commit elements simultaneously inside an isolated database write stream
+    return db.$transaction(async (tx: any) => {
+      const operations = dto.records.map((record) => {
+        return tx.gradeRecord.upsert({
           where: {
             student_assessment_unique_idx: {
               studentId: record.studentId,
-              assessmentId: assessmentId,
+              assessmentId: dto.assessmentId,
             },
           },
           update: {
@@ -58,37 +50,60 @@ export class GradesService {
           create: {
             campusId: campusId,
             studentId: record.studentId,
-            assessmentId: assessmentId,
+            assessmentId: dto.assessmentId,
             score: record.score,
             remarks: record.remarks,
           },
         });
-      }
-      return { message: 'Bulk grades recorded successfully' };
+      });
+
+      return Promise.all(operations);
     });
   }
 
-  async getStudentReportCard(studentId: string, campusId: string) {
-    const records = await this.prisma.client.gradeRecord.findMany({
+  /**
+   * Reads, maps, and structures complete transcripts for a target student matching multi-tenant keys
+   */
+  async getStudentGradeSheet(campusId: string, studentId: string) {
+    const db = this.prisma as any;
+
+    const historicalGrades = await db.gradeRecord.findMany({
       where: {
         studentId: studentId,
         campusId: campusId,
       },
       include: {
         assessment: {
-          include: {
-            subject: true,
+          select: {
+            title: true,
+            type: true,
+            maxPoints: true,
+            weightPercentage: true,
           },
         },
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
-    return records.map((record) => {
-      const percentageGrade = (record.score / record.assessment.maxPoints) * 100;
-      return {
-        ...record,
-        percentageGrade,
-      };
-    });
+    if (historicalGrades.length === 0) {
+      return { studentId, records: [] };
+    }
+
+    return {
+      studentId,
+      records: historicalGrades.map((grade: any) => ({
+        gradeId: grade.id,
+        assessmentId: grade.assessmentId,
+        assessmentTitle: grade.assessment.title,
+        assessmentType: grade.assessment.type,
+        scoreObtained: grade.score,
+        maxPossiblePoints: grade.assessment.maxPoints,
+        weightageContribution: grade.assessment.weightPercentage,
+        remarks: grade.remarks,
+        recordedAt: grade.createdAt,
+      })),
+    };
   }
 }

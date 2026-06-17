@@ -1,45 +1,42 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Param,
-  Headers,
-  UseGuards,
-  BadRequestException,
-  ParseUUIDPipe,
+import { 
+  Body, 
+  Controller, 
+  Get, 
+  Headers, 
+  Param, 
+  ParseUUIDPipe, 
+  Post, 
+  BadRequestException, 
+  HttpCode, 
+  HttpStatus 
 } from '@nestjs/common';
-import { GradesService } from './grades.service';
 import { CreateBulkGradesDto } from './dto/create-bulk-grades.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GradesService } from './grades.service';
 
-@Controller('api/grades')
-@UseGuards(JwtAuthGuard)
+@Controller('grades')
 export class GradesController {
   constructor(private readonly gradesService: GradesService) {}
 
-  private validateCampusId(campusId?: string): string {
-    if (!campusId) {
-      throw new BadRequestException('x-campus-id header is required');
-    }
-    return campusId;
-  }
-
   @Post('bulk')
-  async recordBulkGrades(
-    @Body() dto: CreateBulkGradesDto,
-    @Headers('x-campus-id') campusIdHeader?: string,
+  @HttpCode(HttpStatus.CREATED)
+  async createBulk(
+    @Headers('x-campus-id') campusId: string,
+    @Body() createBulkGradesDto: CreateBulkGradesDto,
   ) {
-    const campusId = this.validateCampusId(campusIdHeader);
-    return this.gradesService.recordBulkGrades(dto, campusId);
+    if (!campusId) {
+      throw new BadRequestException('Missing mandatory x-campus-id tenant header');
+    }
+    return this.gradesService.ingestBulkGrades(campusId, createBulkGradesDto);
   }
 
   @Get('student/:studentId')
-  async getStudentReportCard(
+  async getStudentSheet(
+    @Headers('x-campus-id') campusId: string,
     @Param('studentId', new ParseUUIDPipe({ version: '4' })) studentId: string,
-    @Headers('x-campus-id') campusIdHeader?: string,
   ) {
-    const campusId = this.validateCampusId(campusIdHeader);
-    return this.gradesService.getStudentReportCard(studentId, campusId);
+    if (!campusId) {
+      throw new BadRequestException('Missing mandatory x-campus-id tenant header');
+    }
+    return this.gradesService.getStudentGradeSheet(campusId, studentId);
   }
 }
