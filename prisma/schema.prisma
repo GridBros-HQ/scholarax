@@ -99,6 +99,24 @@ enum StockTransactionType {
   ISSUED
 }
 
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum AssessmentType {
+  EXAM
+  QUIZ
+  ASSIGNMENT
+  PROJECT
+  LAB
+}
+
 // ==========================================
 // MODELS
 // ==========================================
@@ -117,14 +135,14 @@ model SchoolGroup {
 }
 
 model Campus {
-  id             String         @id @default(uuid()) @db.Uuid
-  schoolGroupId  String         @map("school_group_id") @db.Uuid
-  name           String         @db.VarChar(255)
-  code           String         @db.VarChar(50)
-  curriculumType CurriculumType @map("curriculum_type")
-  created_at     DateTime       @default(now()) @db.Timestamptz
-  updated_at     DateTime       @updatedAt @db.Timestamptz
-  deleted_at     DateTime?      @db.Timestamptz
+  id              String                     @id @default(uuid()) @db.Uuid
+  schoolGroupId   String                     @map("school_group_id") @db.Uuid
+  name            String                     @db.VarChar(255)
+  code            String                     @db.VarChar(50)
+  curriculumType  CurriculumType             @map("curriculum_type")
+  created_at      DateTime                   @default(now()) @db.Timestamptz
+  updated_at      DateTime                   @updatedAt @db.Timestamptz
+  deleted_at      DateTime?                  @db.Timestamptz
 
   schoolGroup         SchoolGroup                @relation(fields: [schoolGroupId], references: [id], onDelete: Restrict)
   academic_years      AcademicYear[]
@@ -184,15 +202,15 @@ model AcademicYear {
 }
 
 model Term {
-  id               String   @id @default(uuid()) @db.Uuid
-  campus_id        String   @db.Uuid
-  academic_year_id String   @db.Uuid
-  name             String   @db.VarChar(100)
-  start_date       DateTime @db.Date
-  end_date         DateTime @db.Date
-  is_active        Boolean  @default(false)
-  created_at       DateTime @default(now()) @db.Timestamptz
-  updated_at       DateTime @updatedAt @db.Timestamptz
+  id               String         @id @default(uuid()) @db.Uuid
+  campus_id        String         @db.Uuid
+  academic_year_id String         @db.Uuid
+  name             String         @db.VarChar(100)
+  start_date       DateTime       @db.Date
+  end_date         DateTime       @db.Date
+  is_active        Boolean        @default(false)
+  created_at       DateTime       @default(now()) @db.Timestamptz
+  updated_at       DateTime       @updatedAt @db.Timestamptz
 
   campus         Campus         @relation(fields: [campus_id], references: [id], onDelete: Restrict)
   academic_year  AcademicYear   @relation(fields: [academic_year_id], references: [id], onDelete: Cascade)
@@ -456,11 +474,11 @@ model StaffAssignment {
 }
 
 model FeeCategory {
-  id          String   @id @default(uuid()) @db.Uuid
-  campus_id   String   @db.Uuid
-  name        String   @db.VarChar(150)
-  description String?  @db.Text
-  created_at  DateTime @default(now()) @db.Timestamptz
+  id          String             @id @default(uuid()) @db.Uuid
+  campus_id   String             @db.Uuid
+  name        String             @db.VarChar(150)
+  description String?            @db.Text
+  created_at  DateTime           @default(now()) @db.Timestamptz
 
   campus Campus             @relation(fields: [campus_id], references: [id], onDelete: Restrict)
   items  FeeStructureItem[]
@@ -470,12 +488,12 @@ model FeeCategory {
 }
 
 model FeeStructure {
-  id         String   @id @default(uuid()) @db.Uuid
-  campus_id  String   @db.Uuid
-  term_id    String   @db.Uuid
-  class_id   String   @db.Uuid
-  created_at DateTime @default(now()) @db.Timestamptz
-  updated_at DateTime @updatedAt @db.Timestamptz
+  id         String                 @id @default(uuid()) @db.Uuid
+  campus_id  String                 @db.Uuid
+  term_id    String                 @db.Uuid
+  class_id   String                 @db.Uuid
+  created_at DateTime               @default(now()) @db.Timestamptz
+  updated_at DateTime               @updatedAt @db.Timestamptz
 
   campus      Campus                 @relation(fields: [campus_id], references: [id], onDelete: Restrict)
   term        Term                   @relation(fields: [term_id], references: [id], onDelete: Restrict)
@@ -488,11 +506,11 @@ model FeeStructure {
 }
 
 model FeeStructureItem {
-  id               String   @id @default(uuid()) @db.Uuid
-  fee_structure_id String   @db.Uuid
-  fee_category_id  String   @db.Uuid
-  amount           Decimal  @db.Decimal(12, 2)
-  created_at       DateTime @default(now()) @db.Timestamptz
+  id               String       @id @default(uuid()) @db.Uuid
+  fee_structure_id String       @map("fee_structure_id") @db.Uuid
+  fee_category_id  String       @map("fee_category_id") @db.Uuid
+  amount           Decimal      @db.Decimal(12, 2)
+  created_at       DateTime     @default(now()) @db.Timestamptz
 
   fee_structure FeeStructure @relation(fields: [fee_structure_id], references: [id], onDelete: Cascade)
   category      FeeCategory  @relation(fields: [fee_category_id], references: [id], onDelete: Restrict)
@@ -501,13 +519,13 @@ model FeeStructureItem {
 }
 
 model StudentFeeAssignment {
-  id               String   @id @default(uuid()) @db.Uuid
-  campus_id        String   @db.Uuid
-  student_id       String   @db.Uuid
-  fee_structure_id String   @db.Uuid
-  custom_discount  Decimal  @default(0.00) @db.Decimal(12, 2)
-  notes            String?  @db.Text
-  created_at       DateTime @default(now()) @db.Timestamptz
+  id               String       @id @default(uuid()) @db.Uuid
+  campus_id        String       @db.Uuid
+  student_id       String       @db.Uuid
+  fee_structure_id String       @db.Uuid
+  custom_discount  Decimal      @default(0.00) @db.Decimal(12, 2)
+  notes            String?      @db.Text
+  created_at       DateTime     @default(now()) @db.Timestamptz
 
   campus        Campus       @relation(fields: [campus_id], references: [id], onDelete: Restrict)
   student       Student      @relation(fields: [student_id], references: [id], onDelete: Cascade)
@@ -539,14 +557,14 @@ model FeeInvoice {
 }
 
 model FeePayment {
-  id             String      @id @default(uuid()) @db.Uuid
-  campus_id      String      @db.Uuid
-  fee_invoice_id String      @db.Uuid
-  amount         Decimal     @db.Decimal(12, 2)
+  id             String           @id @default(uuid()) @db.Uuid
+  campus_id      String           @db.Uuid
+  fee_invoice_id String           @db.Uuid
+  amount         Decimal          @db.Decimal(12, 2)
   payment_mode   PaymentMode
-  mpesa_trans_id String?     @unique @db.VarChar(100)
-  payment_date   DateTime    @db.Timestamptz
-  created_at     DateTime    @default(now()) @db.Timestamptz
+  mpesa_trans_id String?          @unique @db.VarChar(100)
+  payment_date   DateTime         @db.Timestamptz
+  created_at     DateTime         @default(now()) @db.Timestamptz
 
   campus   Campus           @relation(fields: [campus_id], references: [id], onDelete: Restrict)
   invoice  FeeInvoice       @relation(fields: [fee_invoice_id], references: [id], onDelete: Restrict)
@@ -570,12 +588,12 @@ model PaymentReceipt {
 }
 
 model Subject {
-  id              String         @id @default(uuid()) @db.Uuid
-  campus_id       String         @db.Uuid
-  name            String         @db.VarChar(150)
-  code            String         @db.VarChar(50)
+  id              String                     @id @default(uuid()) @db.Uuid
+  campus_id       String                     @db.Uuid
+  name            String                     @db.VarChar(150)
+  code            String                     @db.VarChar(50)
   curriculum_type CurriculumType
-  created_at      DateTime       @default(now()) @db.Timestamptz
+  created_at      DateTime                   @default(now()) @db.Timestamptz
 
   campus      Campus                     @relation(fields: [campus_id], references: [id], onDelete: Restrict)
   classes     ClassSubject[]
@@ -623,12 +641,12 @@ model AttendanceSession {
   id           String           @id @default(uuid()) @db.Uuid
   campus_id    String           @db.Uuid
   stream_id    String           @db.Uuid
-  session_date DateTime         @db.Date
+  session_date DateTime           @db.Date
   period_type  AttendancePeriod
   created_at   DateTime         @default(now()) @db.Timestamptz
 
-  campus  Campus             @relation(fields: [campus_id], references: [id], onDelete: Restrict)
-  stream  Stream             @relation(fields: [stream_id], references: [id], onDelete: Cascade)
+  campus  Campus  @relation(fields: [campus_id], references: [id], onDelete: Restrict)
+  stream  Stream  @relation(fields: [stream_id], references: [id], onDelete: Cascade)
 
   @@index([campus_id, session_date])
   @@map("attendance_sessions")
@@ -696,10 +714,10 @@ model SmsLog {
 }
 
 model InventoryCategory {
-  id         String   @id @default(uuid()) @db.Uuid
-  campus_id  String   @db.Uuid
-  name       String   @db.VarChar(150)
-  created_at DateTime @default(now()) @db.Timestamptz
+  id         String          @id @default(uuid()) @db.Uuid
+  campus_id  String          @db.Uuid
+  name       String          @db.VarChar(150)
+  created_at DateTime        @default(now()) @db.Timestamptz
 
   campus Campus          @relation(fields: [campus_id], references: [id], onDelete: Restrict)
   items  InventoryItem[]
@@ -709,14 +727,14 @@ model InventoryCategory {
 }
 
 model InventoryItem {
-  id                    String   @id @default(uuid()) @db.Uuid
-  campus_id             String   @db.Uuid
-  inventory_category_id String   @db.Uuid
-  name                  String   @db.VarChar(255)
-  sku                   String?  @db.VarChar(100)
-  total_quantity        Int      @default(0)
-  available_quantity    Int      @default(0)
-  updated_at            DateTime @updatedAt @db.Timestamptz
+  id                    String                 @id @default(uuid()) @db.Uuid
+  campus_id             String                 @db.Uuid
+  inventory_category_id String                 @db.Uuid
+  name                  String                 @db.VarChar(255)
+  sku                   String?                @db.VarChar(100)
+  total_quantity        Int                    @default(0)
+  available_quantity    Int                    @default(0)
+  updated_at            DateTime               @updatedAt @db.Timestamptz
 
   campus       Campus                 @relation(fields: [campus_id], references: [id], onDelete: Restrict)
   category     InventoryCategory      @relation(fields: [inventory_category_id], references: [id], onDelete: Restrict)
@@ -746,14 +764,14 @@ model InventoryTransaction {
 }
 
 model AuditLog {
-  id              String   @id @default(uuid()) @db.Uuid
-  school_group_id String?  @db.Uuid
-  user_id         String?  @db.Uuid
-  action          String   @db.VarChar(150)
-  entity_type     String   @db.VarChar(100)
-  entity_id       String   @db.VarChar(100)
-  ip_address      String?  @db.VarChar(45)
-  timestamp       DateTime @default(now()) @db.Timestamptz
+  id              String       @id @default(uuid()) @db.Uuid
+  school_group_id String?      @db.Uuid
+  user_id         String?      @db.Uuid
+  action          String       @db.VarChar(150)
+  entity_type     String       @db.VarChar(100)
+  entity_id       String       @db.VarChar(100)
+  ip_address      String?      @db.VarChar(45)
+  timestamp       DateTime     @default(now()) @db.Timestamptz
 
   school_group SchoolGroup? @relation(fields: [school_group_id], references: [id], onDelete: SetNull)
   user         User?        @relation(fields: [user_id], references: [id], onDelete: SetNull)
@@ -763,16 +781,6 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-enum DayOfWeek {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
-  SATURDAY
-  SUNDAY
-}
-
 model TimetableSlot {
   id        String    @id @default(uuid())
   campusId  String    @map("campus_id")
@@ -780,8 +788,8 @@ model TimetableSlot {
   subjectId String    @map("subject_id")
   teacherId String    @map("teacher_id")
   dayOfWeek DayOfWeek @map("day_of_week")
-  startTime String    @map("start_time") // Stored as "08:00", "09:30", etc.
-  endTime   String    @map("end_time")   // Stored as "09:00", "10:30", etc.
+  startTime String    @map("start_time")
+  endTime   String    @map("end_time")
   room      String?   @map("room")
 
   createdAt DateTime  @default(now()) @map("created_at")
@@ -790,14 +798,24 @@ model TimetableSlot {
   @@map("timetable_slots")
 }
 
+// =========================================================================
+// PHASE 4: ACADEMICS & TRACKING CORE MATRICES (Unified & Fixed)
+// =========================================================================
+
 model Assessment {
-  id            String        @id @default(uuid()) @db.Uuid
-  campus_id     String        @db.Uuid
-  subject_id    String        @db.Uuid
-  maxPoints     Float         @map("max_points")
-  
-  grade_records GradeRecord[]
-  subject       Subject       @relation(fields: [subject_id], references: [id], onDelete: Cascade)
+  id               String         @id @default(uuid()) @db.Uuid
+  campusId         String         @map("campus_id") @db.Uuid
+  academicYearId   String         @map("academic_year_id") @db.Uuid
+  subjectId        String         @map("subject_id") @db.Uuid
+  title            String         @map("title") @db.VarChar(255)
+  type             AssessmentType @map("type")
+  maxPoints        Float          @map("max_points")
+  weightPercentage Float          @map("weight_percentage")
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+
+  grade_records    GradeRecord[]
+  subject          Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@map("assessments")
 }
@@ -812,39 +830,16 @@ model GradeRecord {
   createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, assessmentId], name: "student_assessment_unique_idx")
   @@index([campusId], name: "grades_campus_idx")
   @@map("grade_records")
-
-enum AssessmentType {
-  EXAM
-  QUIZ
-  ASSIGNMENT
-  PROJECT
-  LAB
-}
-
-model Assessment {
-  id               String         @id @default(uuid())
-  campusId         String         @map("campus_id")
-  academicYearId   String         @map("academic_year_id")
-  subjectId        String         @map("subject_id")
-  title            String         @map("title")          // e.g., "Midterm Exam", "CAT 1"
-  type             AssessmentType @map("type")
-  maxPoints        Float          @map("max_points")     // e.g., 100, 30
-  weightPercentage Float          @map("weight_percentage") // e.g., 30% of final grade
-
-  createdAt        DateTime       @default(now()) @map("created_at")
-  updatedAt        DateTime       @updatedAt @map("updated_at")
-
-  @@map("assessments")
 }
 
 // =========================================================================
-// 💳 PHASE 5: FINANCIAL LOGISTICS (Your Isolated Custom Tracking Layer)
+// 💳 PHASE 5: FINANCIAL LOGISTICS (Isolated Custom Tracking Layer)
 // =========================================================================
 
 model FeeComponent {
