@@ -811,3 +811,44 @@ model Assessment {
 
   @@map("assessments")
 }
+
+// =========================================================================
+// 💳 PHASE 5: FINANCIAL LOGISTICS (Your Isolated Custom Tracking Layer)
+// =========================================================================
+
+model FeeComponent {
+  id          String   @id @default(uuid()) @db.Uuid
+  campusId    String   @map("campus_id") @db.Uuid
+  name        String   @map("name") @db.VarChar(255)
+  description String?  @map("description") @db.Text
+  amount      Float    @map("amount")
+  isMandatory Boolean  @default(true) @map("is_mandatory")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  packageItems FeePackageItem[]
+  @@map("fee_components")
+}
+
+model FeePackage {
+  id             String           @id @default(uuid()) @db.Uuid
+  campusId       String           @map("campus_id") @db.Uuid
+  academicYearId String           @map("academic_year_id") @db.Uuid
+  name           String           @map("name") @db.VarChar(255)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  items          FeePackageItem[]
+
+  @@map("fee_packages")
+}
+
+model FeePackageItem {
+  id             String       @id @default(uuid()) @db.Uuid
+  feePackageId   String       @map("fee_package_id") @db.Uuid
+  feeComponentId String       @map("fee_component_id") @db.Uuid
+  feePackage     FeePackage   @relation(fields: [feePackageId], references: [id], onDelete: Cascade)
+  feeComponent   FeeComponent @relation(fields: [feeComponentId], references: [id], onDelete: Restrict)
+
+  @@unique([feePackageId, feeComponentId])
+  @@map("fee_package_items")
+}

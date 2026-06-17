@@ -15,6 +15,8 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { TimetableModule } from './timetable/timetable.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { AssessmentModule } from './assessment/assessment.module';
+import { FeeComponentsModule } from './fee-components/fee-components.module';
+import { FeeStructuresModule } from './fee-structures/fee-structures.module';
 
 @Module({
   imports: [
@@ -36,7 +38,7 @@ import { AssessmentModule } from './assessment/assessment.module';
     SubjectsModule,
     TimetableModule,    
     AttendanceModule, 
-    AssessmentModule,   
+    AssessmentModule, FeeComponentsModule, FeeStructuresModule,   
   ],
   controllers: [],
   providers: [],
