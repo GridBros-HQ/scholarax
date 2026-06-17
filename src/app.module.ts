@@ -17,6 +17,8 @@ import { AttendanceModule } from './attendance/attendance.module';
 // 👇 Both of your new modules now live in harmony here
 import { AssessmentModule } from './assessment/assessment.module';
 import { GradesModule } from './grades/grades.module';
+import { GradingScaleModule } from './grading-scale/grading-scale.module';
+
 
 @Module({
   imports: [
@@ -40,6 +42,7 @@ import { GradesModule } from './grades/grades.module';
     AttendanceModule,
     AssessmentModule, // 📑 Your Framework
     GradesModule,     // 📝 His Grading Engine
+    GradingScaleModule, // 📊 Her Grading Scale
   ],
   controllers: [],
   providers: [],
