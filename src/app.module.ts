@@ -15,8 +15,15 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { TimetableModule } from './timetable/timetable.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { AssessmentModule } from './assessment/assessment.module';
+
+// 💳 Phase 5 Financial Modules
 import { FeeComponentsModule } from './fee-components/fee-components.module';
 import { FeeStructuresModule } from './fee-structures/fee-structures.module';
+import { FeeInvoicesModule } from './fee-invoices/fee-invoices.module';
+
+// 🎓 Cornelius's New Academic Modules
+import { GradesModule } from './grades/grades.module';
+import { GradingScaleModule } from './grading-scale/grading-scale.module';
 
 @Module({
   imports: [
@@ -38,7 +45,16 @@ import { FeeStructuresModule } from './fee-structures/fee-structures.module';
     SubjectsModule,
     TimetableModule,    
     AttendanceModule, 
-    AssessmentModule, FeeComponentsModule, FeeStructuresModule,   
+    AssessmentModule,
+    
+    // Financial Stack Verified
+    FeeComponentsModule,
+    FeeStructuresModule,
+    FeeInvoicesModule,   
+    
+    // Ingested Grading Stack
+    GradesModule,     
+    GradingScaleModule,
   ],
   controllers: [],
   providers: [],

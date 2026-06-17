@@ -317,6 +317,7 @@ model Student {
   fee_assignments StudentFeeAssignment[]
   fee_invoices    FeeInvoice[]
   attendance_logs AttendanceRecord[]
+  grade_records   GradeRecord[]
 
   @@unique([campus_id, admission_number])
   @@index([stream_id])
@@ -576,9 +577,10 @@ model Subject {
   curriculum_type CurriculumType
   created_at      DateTime       @default(now()) @db.Timestamptz
 
-  campus   Campus                     @relation(fields: [campus_id], references: [id], onDelete: Restrict)
-  classes  ClassSubject[]
-  teachers TeacherSubjectAssignment[]
+  campus      Campus                     @relation(fields: [campus_id], references: [id], onDelete: Restrict)
+  classes     ClassSubject[]
+  teachers    TeacherSubjectAssignment[]
+  assessments Assessment[]
 
   @@unique([campus_id, code])
   @@map("subjects")
@@ -787,6 +789,35 @@ model TimetableSlot {
 
   @@map("timetable_slots")
 }
+
+model Assessment {
+  id            String        @id @default(uuid()) @db.Uuid
+  campus_id     String        @db.Uuid
+  subject_id    String        @db.Uuid
+  maxPoints     Float         @map("max_points")
+  
+  grade_records GradeRecord[]
+  subject       Subject       @relation(fields: [subject_id], references: [id], onDelete: Cascade)
+
+  @@map("assessments")
+}
+
+model GradeRecord {
+  id           String     @id @default(uuid()) @db.Uuid
+  campusId     String     @map("campus_id") @db.Uuid
+  studentId    String     @map("student_id") @db.Uuid
+  assessmentId String     @map("assessment_id") @db.Uuid
+  score        Float
+  remarks      String?    @db.Text
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, assessmentId], name: "student_assessment_unique_idx")
+  @@index([campusId], name: "grades_campus_idx")
+  @@map("grade_records")
 
 enum AssessmentType {
   EXAM
