@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { PrismaClient } from '@prisma/client';
@@ -7,8 +7,17 @@ import { PrismaClient } from '@prisma/client';
 export class StudentsService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService & PrismaClient) {}
 
-  async enrollStudent(dto: CreateStudentDto, campusId?: string) {
-    const activeCampusId = campusId || '10000000-0000-0000-0000-000000000001';
+  // 🔑 Enforced dynamic campusId requirement by removing the optional marker
+  async enrollStudent(dto: CreateStudentDto, campusId: string) {
+    
+    // 🛡️ Cross-Tenant Boundary Check: Verify targeted stream belongs to the current user's campus
+    const targetStream = await this.prisma.stream.findFirst({
+      where: { id: dto.streamId, campus_id: campusId }
+    });
+
+    if (!targetStream) {
+      throw new NotFoundException(`Target enrollment stream with ID "${dto.streamId}" does not exist on this campus.`);
+    }
 
     try {
       const student = await this.prisma.student.create({
@@ -21,7 +30,7 @@ export class StudentsService {
           enrollment_date: new Date(),
           status: 'ACTIVE',
           campus: {
-            connect: { id: activeCampusId },
+            connect: { id: campusId }, // 🔄 FIXED: Trap eliminated. Securely maps user tenant structure.
           },
           stream: {
             connect: { id: dto.streamId },
@@ -46,7 +55,7 @@ export class StudentsService {
       return student;
     } catch (error) {
       throw new BadRequestException(
-        `Failed to enroll student. Please verify that the admission number is unique and the provided stream and guardian IDs exist. Error: ${(error as any).message}`
+        `Failed to enroll student. Please verify that the admission number is unique and the provided guardian ID exists. Error: ${(error as any).message}`
       );
     }
   }

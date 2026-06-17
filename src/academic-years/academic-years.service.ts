@@ -6,7 +6,8 @@ import { CreateAcademicYearDto } from './dto/create-academic-year.dto';
 export class AcademicYearsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateAcademicYearDto) {
+  // 🔑 Added campusId to the method arguments
+  async create(dto: CreateAcademicYearDto, campusId: string) {
     return this.prisma['academicYear'].create({
       data: {
         name: dto.name,
@@ -14,13 +15,17 @@ export class AcademicYearsService {
         end_date: new Date(dto.endDate),
         is_active: true, // Sets term to operational by default
         campus: {
-          connect: { id: "10000000-0000-0000-0000-000000000001" }
+          connect: { id: campusId } // 🔄 FIXED: Dynamically binds to the true tenant token
         }
       },
     });
   }
 
-  async findAll() {
-    return this.prisma['academicYear'].findMany();
+  // 🛡️ Scoped to enforce tenant data isolation
+  async findAll(campusId: string) {
+    return this.prisma['academicYear'].findMany({
+      where: { campus_id: campusId },
+      orderBy: { start_date: 'desc' }
+    });
   }
 }

@@ -2,28 +2,24 @@ import {
   Controller,
   Post,
   Body,
-  Headers,
-  BadRequestException,
   UseGuards,
 } from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { TenantAuthGuard } from 'src/auth/guards/tenant-auth.guard';
+import { CurrentCampus } from 'src/auth/decorators/current-campus.decorator';
 
 @Controller('students')
-@UseGuards(JwtAuthGuard)
+@UseGuards(TenantAuthGuard) // 🛡️ Protects enrollment logs from cross-campus sniffing
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
   @Post()
   async createStudent(
     @Body() dto: CreateStudentDto,
-    @Headers('x-campus-id') campusId: string,
+    @CurrentCampus() campusId: string, // 🔑 Verified automatically by the passport pipeline
   ) {
-    if (!campusId) {
-      throw new BadRequestException('The x-campus-id header is mandatory');
-    }
-
+    // Note: Manual validation check blocks are safely deleted. Guard blocks failure states upstream.
     return this.studentsService.enrollStudent(dto, campusId);
   }
 }

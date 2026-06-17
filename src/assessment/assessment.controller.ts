@@ -1,20 +1,27 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards } from '@nestjs/common';
 import { AssessmentService } from './assessment.service';
 import { CreateAssessmentDto } from './dto/create-assessment.dto';
+import { TenantAuthGuard } from 'src/auth/guards/tenant-auth.guard';
+import { CurrentCampus } from 'src/auth/decorators/current-campus.decorator';
 
 @Controller('assessment')
+@UseGuards(TenantAuthGuard) // 🛡️ Restricts assessment modifications to authenticated school staff
 export class AssessmentController {
   constructor(private readonly assessmentService: AssessmentService) {}
 
   @Post()
-  async create(@Body() dto: CreateAssessmentDto) {
-    const mockCampusId = "10000000-0000-0000-0000-000000000001";
-    return this.assessmentService.create(dto, mockCampusId);
+  async create(
+    @Body() dto: CreateAssessmentDto,
+    @CurrentCampus() campusId: string // 🔑 Injected safely from verified user token context
+  ) {
+    return this.assessmentService.create(dto, campusId);
   }
 
   @Get('subject/:subjectId')
-  async findBySubject(@Param('subjectId') subjectId: string) {
-    const mockCampusId = "10000000-0000-0000-0000-000000000001";
-    return this.assessmentService.findBySubject(subjectId, mockCampusId);
+  async findBySubject(
+    @Param('subjectId') subjectId: string,
+    @CurrentCampus() campusId: string // 🔑 Injected safely from verified user token context
+  ) {
+    return this.assessmentService.findBySubject(subjectId, campusId);
   }
 }

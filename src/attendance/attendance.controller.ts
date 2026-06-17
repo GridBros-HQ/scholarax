@@ -4,48 +4,40 @@ import {
   Get,
   Body,
   Param,
-  Headers,
   UseGuards,
-  BadRequestException,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
 import { CreateBulkAttendanceDto } from './dto/create-bulk-attendance.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { TenantAuthGuard } from 'src/auth/guards/tenant-auth.guard';
+import { CurrentCampus } from 'src/auth/decorators/current-campus.decorator';
 
 @Controller('api/attendance')
-@UseGuards(JwtAuthGuard)
+@UseGuards(TenantAuthGuard) // 🛡️ Secure all tracking metrics under the multi-tenant shield
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
-  private validateCampusId(campusId?: string): string {
-    if (!campusId) {
-      throw new BadRequestException('x-campus-id header is required');
-    }
-    return campusId;
-  }
+  // Note: Manual validateCampusId header checks have been entirely removed.
+  // The TenantAuthGuard automatically guarantees token existence and cryptographic validity.
 
   @Post('bulk')
   async recordBulkAttendance(
     @Body() dto: CreateBulkAttendanceDto,
-    @Headers('x-campus-id') campusIdHeader?: string,
+    @CurrentCampus() campusId: string, // 🔑 Header parsing replaced with secure parameter injection
   ) {
-    const campusId = this.validateCampusId(campusIdHeader);
     return this.attendanceService.recordBulkAttendance(dto, campusId);
   }
 
   @Get('student/:studentId')
   async getStudentHistory(
     @Param('studentId', new ParseUUIDPipe({ version: '4' })) studentId: string,
-    @Headers('x-campus-id') campusIdHeader?: string,
+    @CurrentCampus() campusId: string,
   ) {
-    const campusId = this.validateCampusId(campusIdHeader);
     return this.attendanceService.getStudentHistory(studentId, campusId);
   }
 
   @Get('metrics')
-  async getCampusMetrics(@Headers('x-campus-id') campusIdHeader?: string) {
-    const campusId = this.validateCampusId(campusIdHeader);
+  async getCampusMetrics(@CurrentCampus() campusId: string) {
     return this.attendanceService.getCampusMetrics(campusId);
   }
 }

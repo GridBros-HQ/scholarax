@@ -1,23 +1,24 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { SubjectsService } from './subjects.service';
 import { CreateSubjectDto } from './dto/create-subject.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { TenantAuthGuard } from 'src/auth/guards/tenant-auth.guard';
+import { CurrentCampus } from 'src/auth/decorators/current-campus.decorator';
 
 @Controller('subjects')
-@UseGuards(JwtAuthGuard)
+@UseGuards(TenantAuthGuard) // 🛡️ Secures curriculum structures across individual tenants
 export class SubjectsController {
   constructor(private readonly subjectsService: SubjectsService) {}
 
   @Post()
-  create(@Body() dto: CreateSubjectDto, @Req() req: any) {
-    // Dynamically pulls the campus context set by your global multi-tenant validation pipeline
-    const campusId = req.campusId || req.headers['x-campus-id'];
+  create(
+    @Body() dto: CreateSubjectDto, 
+    @CurrentCampus() campusId: string, // 🔑 Request parameters cleaned of manual parsing scripts
+  ) {
     return this.subjectsService.create(dto, campusId);
   }
 
   @Get()
-  findAll(@Req() req: any) {
-    const campusId = req.campusId || req.headers['x-campus-id'];
+  findAll(@CurrentCampus() campusId: string) {
     return this.subjectsService.findAll(campusId);
   }
 }

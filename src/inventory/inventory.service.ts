@@ -11,7 +11,6 @@ export class InventoryService {
 
   async createItem(data: any, userId: string, campusId: string) {
     return this.prisma.client.$transaction(async (tx) => {
-      // Changed tx.inventory_item to tx.inventoryItem
       const item = await tx.inventoryItem.create({
         data: {
           name: data.name,
@@ -23,23 +22,24 @@ export class InventoryService {
         },
       });
 
-      // Changed tx.inventory_transaction to tx.inventoryTransaction
+      // 🔄 Record the transactional tracking event
       await tx.inventoryTransaction.create({
         data: {
           item: {
             connect: { id: item.id }
           },
           campus: {
-            connect: { id: "10000000-0000-0000-0000-000000000001" }
+            connect: { id: campusId } // 🔄 FIXED: Dynamically binds to the active tenant scope
           },
           user: {
-            connect: { id: "cfc5fc93-0cc1-4f03-a384-b96953e85c2c" }
+            connect: { id: userId } // 🔄 FIXED: Dynamically attributes action to the real active user
           },
           type: 'STOCK_IN',
           quantity: data.quantity,
         },
       });
 
+      // 📝 Write directly to system audit records
       await this.auditLog.logAction({
         user_id: userId,
         action: `INVENTORY_CREATE: Created supply item ${item.name} (SKU: ${item.sku}) with stock ${data.quantity}`,
@@ -52,7 +52,6 @@ export class InventoryService {
   }
 
   async findAllItems(campusId: string) {
-    // Changed this.prisma.inventory_item to this.prisma.inventoryItem
     return this.prisma.client.inventoryItem.findMany({
       where: { campus_id: campusId },
       orderBy: { updated_at: 'desc' },

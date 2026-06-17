@@ -1,24 +1,28 @@
 import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // Replace with your actual guard path
+import { TenantAuthGuard } from 'src/auth/guards/tenant-auth.guard';
+import { CurrentCampus } from 'src/auth/decorators/current-campus.decorator';
 
 @Controller('api/inventory')
-@UseGuards(JwtAuthGuard) // 👈 Protect the whole domain
+@UseGuards(TenantAuthGuard) // 🛡️ Standardized multi-tenant protection for the asset ledger
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
   @Post()
-  async create(@Body() createDto: any, @Req() req: any) {
-    // Extracting user ID and campus context injected by your guards
-    const userId = req.user.id;
-    const campusId = req.headers['x-campus-id'] || req.user.campusId;
+  async create(
+    @Body() createDto: any, 
+    @CurrentCampus() campusId: string, // 🔑 Automatically extracted from verified token context
+    @Req() req: any
+  ) {
+    // Safely reads the user ID attached to the request by the TenantAuthGuard passport pipeline
+    const userId = req.user.id || req.user.userId; 
 
     return this.inventoryService.createItem(createDto, userId, campusId);
   }
 
   @Get()
-  async findAll(@Req() req: any) {
-    const campusId = req.headers['x-campus-id'] || req.user.campusId;
+  async findAll(@CurrentCampus() campusId: string) {
+    // 🔑 Header fallback checks are completely bypassed. The decorator handles verification upstream.
     return this.inventoryService.findAllItems(campusId);
   }
 }
