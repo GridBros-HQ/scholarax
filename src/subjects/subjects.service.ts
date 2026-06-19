@@ -11,7 +11,7 @@ export class SubjectsService {
       data: {
         name: dto.name,
         code: dto.code,
-        curriculum_type: dto.curriculumType, // Maps camelCase API payload to raw DB column name
+        curriculum_type: dto.curriculumType as any, // Maps camelCase API payload to raw DB column name
         campus: {
           connect: { id: campusId }
         }

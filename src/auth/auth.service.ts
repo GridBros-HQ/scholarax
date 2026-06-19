@@ -43,10 +43,11 @@ export class AuthService {
   });
   }
   async login(credentials: any) {
-    // 1. Look up the user by the multi-tenant compound unique criteria
+    // 1. Look up the user by tenant-scoped criteria
     const user = await this.prisma.client.user.findFirst({
       where: {
         email: credentials.email,
+        campusId: credentials.campusId,
       },
     });
 
@@ -56,7 +57,7 @@ export class AuthService {
    }
 
    // 3. Verify their password using bcrypt against the correct 'passwordHash' column
-   const isPasswordValid = credentials.password === 'Password123' || await bcrypt.compare(credentials.password, user.passwordHash);
+   const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash);
    if (!isPasswordValid) {
     throw new BadRequestException('Invalid credentials');
    }
