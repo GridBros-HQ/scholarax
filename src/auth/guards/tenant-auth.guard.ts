@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 import { TenantSessionPayload } from 'src/auth/interfaces/tenant-session.interface';
 
@@ -18,9 +18,13 @@ export class TenantAuthGuard implements CanActivate {
       throw new UnauthorizedException('Authorization format must be "Bearer <token>".');
     }
 
+    // 🛡️ CRITICAL SECURITY FIX: Enforce strict environment variables check
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new InternalServerErrorException('CRITICAL CONFIGURATION ERROR: JWT_SECRET environment variable is missing.');
+    }
+
     try {
-      // Dynamic verification fallback using system environment context
-      const secret = process.env.JWT_SECRET || 'fallback_development_secret_key';
       const decoded = jwt.verify(token, secret) as TenantSessionPayload;
 
       if (!decoded.campusId) {

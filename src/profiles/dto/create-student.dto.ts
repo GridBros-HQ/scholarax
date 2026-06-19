@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsUUID } from 'class-validator';
 
 export class CreateStudentDto {
   @IsString()
@@ -9,11 +9,19 @@ export class CreateStudentDto {
   @IsNotEmpty()
   last_name: string;
 
-  @IsUUID()
+  @IsUUID('4')
+  @IsNotEmpty()
+  streamId: string;
+
+  @IsUUID('4')
   @IsNotEmpty()
   guardianId: string;
 
-  @IsUUID()
   @IsNotEmpty()
-  streamId: string;
+  @IsDateString()
+  dateOfBirth: string; // Expects an ISO date string format (e.g., "2012-05-14")
+
+  @IsNotEmpty()
+  @IsString()
+  gender: string; // Must match your exact Prisma schema capitalization (e.g., "MALE", "FEMALE")
 }

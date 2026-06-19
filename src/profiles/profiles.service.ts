@@ -9,9 +9,6 @@ import { PrismaClient } from '@prisma/client';
 export class ProfilesService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService & PrismaClient) {}
 
-  // Note: Magic background getCampusId lookups have been removed. 
-  // Context parameters are now cleanly passed down explicitly from the route controller.
-
   async createStaff(dto: CreateStaffProfileDto, campusId: string) {
     // Ensure the core user exists and belongs to this campus
     const user = await this.prisma.user.findFirst({
@@ -72,7 +69,6 @@ export class ProfilesService {
   }
 
   async findAllGuardiansByTenant(campusId: string) {
-    // 🛡️ DATA LEAK FIXED: Isolated guardian queries based on tenant user workspace
     return this.prisma.guardian.findMany({
       where: {
         user: {
@@ -104,13 +100,16 @@ export class ProfilesService {
     return this.prisma.student.create({
       data: {
         campus: {
-          connect: { id: campusId } // 🔄 FIXED: Tied cleanly to active structural pipeline argument
+          connect: { id: campusId }
         },
         first_name: dto.first_name,
         last_name: dto.last_name,
         admission_number: `ADM-${Date.now()}`,
-        date_of_birth: new Date('2010-01-01'), 
-        gender: 'UNKNOWN', 
+        
+        // 🔄 FIXED: Dynamic bindings replace the old hardcoded '2010-01-01' and 'UNKNOWN' placeholders
+        date_of_birth: new Date(dto.dateOfBirth), 
+        gender: dto.gender.toUpperCase() as any, 
+        
         enrollment_date: new Date(),
         stream: {
           connect: { id: dto.streamId },
@@ -129,7 +128,6 @@ export class ProfilesService {
   }
 
   async findAllStudentsByTenant(campusId: string) {
-    // 🛡️ DATA LEAK FIXED: Strictly filters records down to current active user campus index
     return this.prisma.student.findMany({
       where: {
         campus_id: campusId

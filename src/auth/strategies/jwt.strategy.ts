@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -9,15 +9,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'dev_secret_key_for_scholarax_local_testing_2026',
+      // 🛡️ CRITICAL SECURITY FIX: Throws an explicit initialization exception if secret environment key drops
+      secretOrKey: (() => {
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+          throw new InternalServerErrorException('CRITICAL CONFIGURATION ERROR: JWT_SECRET environment variable is missing.');
+        }
+        return secret;
+      })(),
     });
   }
 
   async validate(payload: any) {
-    // Bypass the RLS query filter by accessing the un-extended database instance
-    const client = (this.prisma as any).baseClient || this.prisma;
-    
-    const user = await client.user.findUnique({
+    // 🛡️ SECURITY BYPASS FIXED: Removed the rogue .baseClient lookup attempt.
+    // All profile lookups now go through our secure, proxy-protected transaction layer.
+    const user = await this.prisma.client.user.findUnique({
       where: { id: payload.sub }
     });
 
