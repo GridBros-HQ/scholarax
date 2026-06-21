@@ -878,3 +878,59 @@ model FeePackageItem {
   @@unique([feePackageId, feeComponentId])
   @@map("fee_package_items")
 }
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  RECONCILED
+}
+
+model PaymentGatewayConfig {
+  id             String   @id @default(uuid()) @db.Uuid
+  campusId       String   @unique @map("campus_id") @db.Uuid
+  shortCode      String   @map("short_code")
+  consumerKey    String   @map("consumer_key") @db.VarChar(500) // Encrypted
+  consumerSecret String   @map("consumer_secret") @db.VarChar(500) // Encrypted
+  passkey        String   @map("passkey") @db.VarChar(500) // Encrypted
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([campusId])
+  @@map("payment_gateway_configs")
+}
+
+model MpesaTransaction {
+  id                String        @id @default(uuid()) @db.Uuid
+  campusId          String        @map("campus_id") @db.Uuid
+  studentId         String        @map("student_id") @db.Uuid
+  invoiceId         String        @map("invoice_id") @db.Uuid
+  amount            Decimal       @db.Decimal(10, 2)
+  phoneNumber       String        @map("phone_number")
+  checkoutRequestId String        @unique @map("checkout_request_id")
+  merchantRequestId String        @map("merchant_request_id")
+  mpesaReceiptNumber String?      @unique @map("mpesa_receipt_number")
+  status            PaymentStatus @default(PENDING)
+  failureReason     String?       @map("failure_reason")
+  rawCallbackDump   Json?         @map("raw_callback_dump")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  @@index([campusId])
+  @@index([checkoutRequestId])
+  @@index([mpesaReceiptNumber])
+  @@map("mpesa_transactions")
+}
+
+model PaymentAuditTrail {
+  id         String   @id @default(uuid()) @db.Uuid
+  campusId   String   @map("campus_id") @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String
+  details    Json
+  ipAddress  String   @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([campusId])
+  @@map("payment_audit_trails")
+}

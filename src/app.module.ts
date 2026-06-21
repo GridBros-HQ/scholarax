@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
+import { MpesaModule } from './mpesa/mpesa.module';
 import { AuthModule } from './auth/auth.module';
 import { CampusModule } from './campus/campus.module';
 import { envValidationSchema } from './config/env.validation';
@@ -33,6 +34,7 @@ import { GradingScaleModule } from './grading-scale/grading-scale.module';
       cache: true,
     }),
     PrismaModule,
+    MpesaModule,
     AuthModule,
     CampusModule,
     InventoryModule,
