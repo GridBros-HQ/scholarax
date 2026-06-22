@@ -20,5 +20,10 @@
     "noFallthroughCasesInSwitch": true,
     // 🛡️ PERMANENT TESTING TYPE COUPLING FIX
     "types": ["node", "jest"]
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "frontend"
+  ]
 }

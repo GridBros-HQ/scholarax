@@ -9,6 +9,11 @@ import { CurrentCampus } from 'src/auth/decorators/current-campus.decorator';
 export class FeeInvoicesController {
   constructor(private readonly feeInvoicesService: FeeInvoicesService) {}
 
+  @Get('dashboard/summary')
+  async getDashboardSummary(@CurrentCampus() campusId: string) {
+    return this.feeInvoicesService.getDashboardSummary(campusId);
+  }
+
   @Post('batch-run')
   async createBatchRun(
     @Body() dto: CreateInvoiceRunDto,

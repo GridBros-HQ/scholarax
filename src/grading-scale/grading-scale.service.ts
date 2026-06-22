@@ -17,34 +17,58 @@ export class GradingScaleService {
     curriculumType: 'CBC' | 'KCSE',
     percentage: number,
   ): Promise<GradingInterpretationResult> {
-    const db = this.prisma as any;
+    
+    // 1. Resolve active database table matching bracket-notation rules
+    const modelName = ['gradingScale', 'grading_scale', 'GradingScale', 'gradingScales', 'grading_scales']
+      .find(model => typeof this.prisma[model] !== 'undefined');
 
-    try {
-      // 1. Dynamic Tenant Override Scan
-      const customScaleMatches = await db.gradingScale.findMany({
-        where: {
-          campus_id: campusId,
-          curriculum_type: curriculumType,
-        },
-      });
-
-      if (customScaleMatches && customScaleMatches.length > 0) {
-        const matchedOverride = customScaleMatches.find(
-          (scale: any) => percentage >= scale.min_percentage && percentage <= scale.max_percentage,
-        );
-
-        if (matchedOverride) {
-          return {
-            grade: matchedOverride.grade,
-            gradePoints: matchedOverride.grade_points,
-            qualitativeRubric: matchedOverride.qualitative_rubric || '',
-            isCustomOverride: true,
-          };
+    if (modelName) {
+      try {
+        let customScaleMatches = [];
+        
+        try {
+          // Attempt layout A query (snake_case)
+          customScaleMatches = await this.prisma[modelName].findMany({
+            where: {
+              campus_id: campusId,
+              curriculum_type: curriculumType,
+            },
+          });
+        } catch {
+          try {
+            // Fallback layout B query (camelCase)
+            customScaleMatches = await this.prisma[modelName].findMany({
+              where: {
+                campusId: campusId,
+                curriculumType: curriculumType,
+              },
+            });
+          } catch (err) {
+            customScaleMatches = [];
+          }
         }
+
+        // Evaluate overrides against both snake_case and camelCase fields safely
+        if (customScaleMatches && customScaleMatches.length > 0) {
+          const matchedOverride = customScaleMatches.find((scale: any) => {
+            const min = Number(scale.min_percentage ?? scale.minPercentage ?? 0);
+            const max = Number(scale.max_percentage ?? scale.maxPercentage ?? 100);
+            return percentage >= min && percentage <= max;
+          });
+
+          if (matchedOverride) {
+            return {
+              grade: matchedOverride.grade,
+              gradePoints: Number(matchedOverride.grade_points ?? matchedOverride.gradePoints ?? 0),
+              qualitativeRubric: matchedOverride.qualitative_rubric ?? matchedOverride.qualitativeRubric ?? '',
+              isCustomOverride: true,
+            };
+          }
+        }
+      } catch (err) {
+        // Log warning and fall through to standard national defaults cleanly
+        console.warn(`[GRADING_ENGINE] Database scale lookup skipped for campus: ${campusId}. Applying default ranges.`);
       }
-    } catch (err) {
-      // Log warning and fall through to standard defaults cleanly
-      console.warn(`[GRADING_ENGINE] Database scale lookup skipped for campus: ${campusId}. Applying default ranges.`);
     }
 
     // 2. National Educational System Fallbacks

@@ -25,6 +25,8 @@ import { FeeInvoicesModule } from './fee-invoices/fee-invoices.module';
 // 🎓 Cornelius's New Academic Modules
 import { GradesModule } from './grades/grades.module';
 import { GradingScaleModule } from './grading-scale/grading-scale.module';
+import { SmsModule } from './sms/sms.module'; 
+import { ExpensesModule } from './expenses/expenses.module'; 
 
 @Module({
   imports: [
@@ -57,6 +59,8 @@ import { GradingScaleModule } from './grading-scale/grading-scale.module';
     // Ingested Grading Stack
     GradesModule,     
     GradingScaleModule,
+    SmsModule,
+    ExpensesModule, 
   ],
   controllers: [],
   providers: [],

@@ -3,7 +3,7 @@ import { InventoryService } from './inventory.service';
 import { TenantAuthGuard } from 'src/auth/guards/tenant-auth.guard';
 import { CurrentCampus } from 'src/auth/decorators/current-campus.decorator';
 
-@Controller('api/inventory')
+@Controller('inventory')
 @UseGuards(TenantAuthGuard) // 🛡️ Standardized multi-tenant protection for the asset ledger
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}

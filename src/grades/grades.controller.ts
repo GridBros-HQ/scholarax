@@ -5,6 +5,7 @@ import {
   Param, 
   ParseUUIDPipe, 
   Post, 
+  Query,
   HttpCode, 
   HttpStatus,
   UseGuards
@@ -15,25 +16,36 @@ import { TenantAuthGuard } from 'src/auth/guards/tenant-auth.guard';
 import { CurrentCampus } from 'src/auth/decorators/current-campus.decorator';
 
 @Controller('grades')
-@UseGuards(TenantAuthGuard) // 🛡 Secures all routes in this controller automatically
+@UseGuards(TenantAuthGuard)
 export class GradesController {
   constructor(private readonly gradesService: GradesService) {}
 
   @Post('bulk')
   @HttpCode(HttpStatus.CREATED)
   async createBulk(
-    @CurrentCampus() campusId: string, // 🔑 Extract securely from cryptographically verified JWT
+    @CurrentCampus() campusId: string,
     @Body() createBulkGradesDto: CreateBulkGradesDto,
   ) {
-    // Note: Manual "if (!campusId)" checks are removed. The Guard handles this automatically.
     return this.gradesService.ingestBulkGrades(campusId, createBulkGradesDto);
   }
 
   @Get('student/:studentId')
+  @HttpCode(HttpStatus.OK)
   async getStudentSheet(
-    @CurrentCampus() campusId: string, // 🔑 Extract securely from cryptographically verified JWT
+    @CurrentCampus() campusId: string,
     @Param('studentId', new ParseUUIDPipe({ version: '4' })) studentId: string,
   ) {
     return this.gradesService.getStudentGradeSheet(campusId, studentId);
+  }
+
+  @Get('report-card/student/:studentId/term/:termId')
+  @HttpCode(HttpStatus.OK)
+  async getTerminalReportCard(
+    @CurrentCampus() campusId: string,
+    @Param('studentId', new ParseUUIDPipe({ version: '4' })) studentId: string,
+    @Param('termId', new ParseUUIDPipe({ version: '4' })) termId: string,
+    @Query('curriculum') curriculum: 'CBC' | 'KCSE' = 'KCSE',
+  ) {
+    return this.gradesService.generateTerminalReportCard(campusId, studentId, termId, curriculum);
   }
 }

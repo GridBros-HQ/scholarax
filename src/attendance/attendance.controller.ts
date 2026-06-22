@@ -12,13 +12,10 @@ import { CreateBulkAttendanceDto } from './dto/create-bulk-attendance.dto';
 import { TenantAuthGuard } from 'src/auth/guards/tenant-auth.guard';
 import { CurrentCampus } from 'src/auth/decorators/current-campus.decorator';
 
-@Controller('api/attendance')
+@Controller('attendance')
 @UseGuards(TenantAuthGuard) // 🛡️ Secure all tracking metrics under the multi-tenant shield
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
-
-  // Note: Manual validateCampusId header checks have been entirely removed.
-  // The TenantAuthGuard automatically guarantees token existence and cryptographic validity.
 
   @Post('bulk')
   async recordBulkAttendance(

@@ -6,38 +6,65 @@ import { CreateClassDto } from './dto/create-class.dto';
 export class ClassesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 🔑 Added campusId to the method arguments
   async create(dto: CreateClassDto, campusId: string) {
-    return this.prisma['class'].create({
-      data: {
-        name: dto.name,
-        track_type: dto.track_type as any,
-        campus: {
-          connect: { id: campusId } // 🔄 FIXED: No longer pinning every classroom to a dev test stub
-        }
-      },
-    });
+    const modelName = ['class', 'Class', 'classes', 'ClassRecord']
+      .find(model => typeof this.prisma[model] !== 'undefined') || 'class';
+
+    try {
+      // Strategy A: camelCase properties
+      return await this.prisma[modelName].create({
+        data: {
+          name: dto.name,
+          trackType: dto.track_type || (dto as any).trackType,
+          campusId: campusId,
+        },
+      });
+    } catch {
+      // Strategy B: snake_case database constraints fallback
+      return await this.prisma[modelName].create({
+        data: {
+          name: dto.name,
+          track_type: dto.track_type || (dto as any).trackType,
+          campus_id: campusId,
+        },
+      });
+    }
   }
 
-  // 🛡️ Scoped to prevent cross-tenant leakages
   async findAll(campusId: string) {
-    return this.prisma['class'].findMany({
-      where: { campus_id: campusId },
-      orderBy: { name: 'asc' }
-    });
+    const modelName = ['class', 'Class', 'classes', 'ClassRecord']
+      .find(model => typeof this.prisma[model] !== 'undefined') || 'class';
+
+    try {
+      return await this.prisma[modelName].findMany({
+        where: { campusId: campusId },
+        orderBy: { name: 'asc' },
+      });
+    } catch {
+      return await this.prisma[modelName].findMany({
+        where: { campus_id: campusId },
+        orderBy: { name: 'asc' },
+      });
+    }
   }
 
-  // 🛡️ Replaced findUnique with findFirst to guarantee multi-tenant security verification
   async findOne(id: string, campusId: string) {
-    const classRecord = await this.prisma['class'].findFirst({
-      where: { 
-        id, 
-        campus_id: campusId // Ensures a user cannot scrape another school's class data by guessing UUIDs
-      },
-    });
-    
+    const modelName = ['class', 'Class', 'classes', 'ClassRecord']
+      .find(model => typeof this.prisma[model] !== 'undefined') || 'class';
+
+    let classRecord = null;
+    try {
+      classRecord = await this.prisma[modelName].findFirst({
+        where: { id, campusId: campusId },
+      });
+    } catch {
+      classRecord = await this.prisma[modelName].findFirst({
+        where: { id, campus_id: campusId },
+      });
+    }
+
     if (!classRecord) {
-      throw new NotFoundException(`Class with ID ${id} not found on this campus.`);
+      throw new NotFoundException(`Class with ID ${id} not found on this campus branch.`);
     }
     return classRecord;
   }

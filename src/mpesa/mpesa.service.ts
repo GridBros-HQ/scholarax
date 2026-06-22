@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaymentStatus } from '@prisma/client'; // 🛡️ Added for strict schema validation safety
+import { PaymentStatus } from '@prisma/client'; 
+import { SmsService } from 'src/sms/sms.service'; // 🔄 Imported for real-time text receipt execution
 import * as crypto from 'crypto';
 
 export interface StkPushInitiateDto {
@@ -10,17 +11,37 @@ export interface StkPushInitiateDto {
   invoiceId: string;
 }
 
+export interface SaveGatewayConfigDto {
+  shortCode: string;
+  consumerKey: string;
+  consumerSecret: string;
+  passkey: string;
+}
+
 @Injectable()
 export class MpesaService {
   private readonly logger = new Logger(MpesaService.name);
   private readonly CRYPTO_KEY = Buffer.from('test_secret_key_must_be_thirty_two_bytes_long'.slice(0, 32));
   private readonly ALGORITHM = 'aes-256-gcm';
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly smsService: SmsService // 🛡️ Injected the SMS automation handler
+  ) {}
 
-  /**
-   * 🔓 Decrypts data fields stored securely inside database clusters
-   */
+  private encrypt(plainText: string): string {
+    try {
+      const iv = crypto.randomBytes(12);
+      const cipher = crypto.createCipheriv(this.ALGORITHM, this.CRYPTO_KEY, iv);
+      let encrypted = cipher.update(plainText, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      const tag = cipher.getAuthTag().toString('hex');
+      return `${iv.toString('hex')}:${encrypted}:${tag}`;
+    } catch (error) {
+      throw new InternalServerErrorException('Cryptographic operational failure while encrypting payment credentials.');
+    }
+  }
+
   private decrypt(cipherText: string): string {
     try {
       const [ivHex, encryptedHex, tagHex] = cipherText.split(':');
@@ -36,12 +57,31 @@ export class MpesaService {
     }
   }
 
-  /**
-   * 🚀 Broadcasts a live STK Push Request out to the Safaricom Daraja Network Staging Gateway
-   */
+  async upsertGatewayConfig(dto: SaveGatewayConfigDto, campusId: string) {
+    const encryptedKey = this.encrypt(dto.consumerKey);
+    const encryptedSecret = this.encrypt(dto.consumerSecret);
+    const encryptedPasskey = this.encrypt(dto.passkey);
+
+    return await this.prisma['paymentGatewayConfig'].upsert({
+      where: { campusId },
+      update: {
+        shortCode: dto.shortCode,
+        consumerKey: encryptedKey,
+        consumerSecret: encryptedSecret,
+        passkey: encryptedPasskey,
+      },
+      create: {
+        campusId,
+        shortCode: dto.shortCode,
+        consumerKey: encryptedKey,
+        consumerSecret: encryptedSecret,
+        passkey: encryptedPasskey,
+      },
+    });
+  }
+
   async initiateStkPush(dto: StkPushInitiateDto, campusId: string, userId: string, ipAddress: string): Promise<any> {
-    // 1. Fetch encrypted campus configurations via the custom prisma.client instance
-    const config = await this.prisma.client.paymentGatewayConfig.findUnique({
+    const config = await this.prisma['paymentGatewayConfig'].findUnique({
       where: { campusId },
     });
 
@@ -49,13 +89,11 @@ export class MpesaService {
       throw new NotFoundException('M-Pesa payment integration is not configured for this campus context.');
     }
 
-    // 2. Clear credentials mapping layers in memory safely
     const rawShortcode = config.shortCode;
     const rawKey = this.decrypt(config.consumerKey);
     const rawSecret = this.decrypt(config.consumerSecret);
     const rawPasskey = this.decrypt(config.passkey);
 
-    // 3. Complete the live OAuth authentication handshake with Safaricom
     const authHeader = Buffer.from(`${rawKey}:${rawSecret}`).toString('base64');
     const tokenResponse = await fetch('https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials', {
       method: 'GET',
@@ -69,11 +107,9 @@ export class MpesaService {
     const tokenData = await tokenResponse.json() as any;
     const accessToken = tokenData.access_token;
 
-    // 4. Synthesize the transaction timestamp parameters
-    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14); // YYYYMMDDHHmmss
+    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
     const password = Buffer.from(`${rawShortcode}${rawPasskey}${timestamp}`).toString('base64');
 
-    // 5. Fire off the live request directly to Safaricom's web gateway servers
     const stkResponse = await fetch('https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest', {
       method: 'POST',
       headers: {
@@ -103,9 +139,8 @@ export class MpesaService {
 
     const stkData = await stkResponse.json() as any;
 
-    // 6. Persist transaction context via the extended engine transaction allocator
-    return await this.prisma.client.$transaction(async (tx: any) => {
-      const txRecord = await tx.mpesaTransaction.create({
+    return await this.prisma['$transaction'](async (tx: any) => {
+      const txRecord = await tx['mpesaTransaction'].create({
         data: {
           campusId,
           studentId: dto.studentId,
@@ -114,11 +149,11 @@ export class MpesaService {
           phoneNumber: dto.phoneNumber,
           checkoutRequestId: stkData.CheckoutRequestID,
           merchantRequestId: stkData.MerchantRequestID,
-          status: PaymentStatus.PENDING, // 🔄 Swapped raw text string for Prisma Enum mapping
+          status: PaymentStatus.PENDING,
         },
       });
 
-      await tx.paymentAuditTrail.create({
+      await tx['paymentAuditTrail'].create({
         data: {
           campusId,
           userId,
@@ -141,11 +176,7 @@ export class MpesaService {
     });
   }
 
-  /**
-   * 📥 Processes incoming authenticated webhooks returning from Safaricom's cloud servers
-   */
   async handleWebhookCallback(payload: any, ipAddress: string): Promise<void> {
-    // 📢 Telemetry Injection Boundary: Log all inbound raw packet streams immediately
     this.logger.log(`📥 Webhook intercepted! Raw Safaricom Payload: ${JSON.stringify(payload)}`);
 
     const stkCallback = payload?.Body?.stkCallback;
@@ -156,8 +187,7 @@ export class MpesaService {
     const checkoutRequestId = stkCallback.CheckoutRequestID;
     const resultCode = stkCallback.ResultCode;
 
-    // Find tracking row using the custom client engine interface
-    const existingTx = await this.prisma.client.mpesaTransaction.findUnique({
+    const existingTx = await this.prisma['mpesaTransaction'].findUnique({
       where: { checkoutRequestId },
     });
 
@@ -166,18 +196,19 @@ export class MpesaService {
       throw new NotFoundException('Transaction execution tracking context target reference mismatch.');
     }
 
-    // Process payment success metadata
+    // 🔄 Variables allocated to forward transactional configurations safely outside the database thread scope
+    let sendSmsConfirmation = false;
+    let smsPayload = { campusId: '', recipient: '', message: '' };
+
     if (resultCode === 0) {
       const callbackItems = stkCallback.CallbackMetadata?.Item || [];
       const receiptItem = callbackItems.find((item: any) => item.Name === 'MpesaReceiptNumber');
       const mpesaReceiptNumber = receiptItem?.Value;
 
-      // 📢 Active Success Tracker
       this.logger.log(`✅ Payment SUCCESS verification sequence processing for transaction row reference: ${existingTx.id}`);
 
-      await this.prisma.client.$transaction(async (tx: any) => {
-        // 1. Update core Mpesa log entry status
-        await tx.mpesaTransaction.update({
+      await this.prisma['$transaction'](async (tx: any) => {
+        await tx['mpesaTransaction'].update({
           where: { id: existingTx.id },
           data: {
             status: PaymentStatus.SUCCESS, 
@@ -186,27 +217,22 @@ export class MpesaService {
           },
         });
 
-        // 2. Fetch the target invoice to see current balances
-        const invoice = await tx.feeInvoice.findUnique({
+        const invoice = await tx['feeInvoice'].findUnique({
           where: { id: existingTx.invoiceId },
         });
 
         if (invoice) {
-          // Calculate new paid total safely combining fields as numbers
           const cleanAmountPaid = Number(existingTx.amount);
           const currentPaidTotal = Number(invoice.paid_amount);
           const invoiceTotalRequired = Number(invoice.total_amount);
-          
           const finalPaidSum = currentPaidTotal + cleanAmountPaid;
           
-          // Determine accounting validation state mapping to InvoiceStatus enum
-          let invoiceAccountingStatus: 'FULLY_PAID' | 'PARTIALLY_PAID' = 'PARTIALLY_PAID';
+          let invoiceAccountingStatus: 'PAID' | 'PARTIAL' = 'PARTIAL';
           if (finalPaidSum >= invoiceTotalRequired) {
-            invoiceAccountingStatus = 'FULLY_PAID';
+            invoiceAccountingStatus = 'PAID';
           }
 
-          // Update school invoice row data balances
-          await tx.feeInvoice.update({
+          await tx['feeInvoice'].update({
             where: { id: invoice.id },
             data: {
               paid_amount: finalPaidSum,
@@ -214,21 +240,19 @@ export class MpesaService {
             },
           });
 
-          // 3. Post a clean entry to the FeePayment ledger matrix
-          const paymentLedger = await tx.feePayment.create({
+          const paymentLedger = await tx['feePayment'].create({
             data: {
               campus_id: existingTx.campusId,
               fee_invoice_id: invoice.id,
               amount: existingTx.amount,
-              payment_mode: 'MPESA', // Maps directly to your PaymentMode schema enum
+              payment_mode: 'MPESA', 
               mpesa_trans_id: mpesaReceiptNumber,
               payment_date: new Date(),
             },
           });
 
-          // 4. Mint an official system wide PaymentReceipt string
           const cleanReceiptSlug = `REC-${mpesaReceiptNumber || crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-          await tx.paymentReceipt.create({
+          await tx['paymentReceipt'].create({
             data: {
               campus_id: existingTx.campusId,
               fee_payment_id: paymentLedger.id,
@@ -236,13 +260,29 @@ export class MpesaService {
             },
           });
           
+          // 👤 Casing-agnostic student profiling context query injection
+          const studentModelName = ['student', 'Student', 'students'].find(m => typeof tx[m] !== 'undefined') || 'student';
+          const student = await tx[studentModelName].findUnique({
+            where: { id: existingTx.studentId },
+          });
+          
+          const studentName = student ? `${student.firstName ?? student.first_name ?? ''}`.trim() : 'Student';
+          const currentOutstandingBalance = Math.max(0, invoiceTotalRequired - finalPaidSum);
+
+          // 📝 Compile localized message templates securely
+          smsPayload = {
+            campusId: existingTx.campusId,
+            recipient: existingTx.phoneNumber,
+            message: `Scholarax: KES ${cleanAmountPaid.toLocaleString()}.00 received via M-Pesa (${mpesaReceiptNumber}) for ${studentName}. New Invoice Status: ${invoiceAccountingStatus}. Balance: KES ${currentOutstandingBalance.toLocaleString()}.00. Thank you!`,
+          };
+          sendSmsConfirmation = true;
+
           this.logger.log(`📊 Ledger updated successfully: Invoice ${invoice.id} state adjusted to ${invoiceAccountingStatus}.`);
         } else {
           this.logger.warn(`⚠️ FeeInvoice reference ${existingTx.invoiceId} not found during ledger processing.`);
         }
 
-        // 5. Append records to system audit trail boundaries
-        await tx.paymentAuditTrail.create({
+        await tx['paymentAuditTrail'].create({
           data: {
             campusId: existingTx.campusId,
             action: 'MPESA_PAYMENT_CALLBACK_SUCCESS',
@@ -256,22 +296,31 @@ export class MpesaService {
           },
         });
       });
+
+      // 📱 Trigger outbound notification securely following the transaction lifecycle context execution
+      if (sendSmsConfirmation) {
+        try {
+          await this.smsService.sendSms(smsPayload.campusId, smsPayload.recipient, smsPayload.message);
+          this.logger.log(`📱 Automated SMS payment confirmation successfully dispatched to ${smsPayload.recipient}`);
+        } catch (smsErr: any) {
+          this.logger.error(`[SMS_ORCHESTRATION_ERROR] Real-time text transmission skipped: ${smsErr.message}`);
+        }
+      }
+
     } else {
-      // 📢 Active Sad Path Warning Tracker
       this.logger.warn(`❌ SAD PATH WEBHOOK RETRIEVED! ResultCode: ${resultCode} | Reason: ${stkCallback.ResultDesc || 'Decline operations registered.'}`);
 
-      // Process transaction rejection or customer cancel operations
-      await this.prisma.client.$transaction(async (tx: any) => {
-        await tx.mpesaTransaction.update({
+      await this.prisma['$transaction'](async (tx: any) => {
+        await tx['mpesaTransaction'].update({
           where: { id: existingTx.id },
           data: {
-            status: PaymentStatus.FAILED, // 🔄 Swapped raw text string for Prisma Enum mapping
+            status: PaymentStatus.FAILED, 
             failureReason: stkCallback.ResultDesc || 'Transaction execution declined by client handset hardware.',
             rawCallbackDump: payload,
           },
         });
 
-        await tx.paymentAuditTrail.create({
+        await tx['paymentAuditTrail'].create({
           data: {
             campusId: existingTx.campusId,
             action: 'MPESA_PAYMENT_CALLBACK_FAILED',
@@ -283,11 +332,8 @@ export class MpesaService {
     }
   }
 
-  /**
-   * 🔍 Fetches the current processing state of an active transaction row for UI short-polling
-   */
   async getTransactionStatus(checkoutRequestId: string) {
-    const transaction = await this.prisma.client.mpesaTransaction.findUnique({
+    const transaction = await this.prisma['mpesaTransaction'].findUnique({
       where: { checkoutRequestId },
       select: {
         status: true,

@@ -3,10 +3,45 @@ import { MpesaService } from './mpesa.service';
 import { StkPushInitiateDto, SafaricomCallbackPayload } from './mpesa.interfaces';
 import { TenantAuthGuard } from 'src/auth/guards/tenant-auth.guard';
 import { CurrentCampus } from 'src/auth/decorators/current-campus.decorator';
+import { IsString, IsNotEmpty } from 'class-validator';
+
+/**
+ * 🛡️ Data Transfer Object validating inbound credential entry streams
+ */
+export class SaveGatewayConfigDto {
+  @IsString()
+  @IsNotEmpty()
+  shortCode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  consumerKey: string;
+
+  @IsString()
+  @IsNotEmpty()
+  consumerSecret: string;
+
+  @IsString()
+  @IsNotEmpty()
+  passkey: string;
+}
 
 @Controller('payments/mpesa')
 export class MpesaController {
   constructor(private readonly mpesaService: MpesaService) {}
+
+  /**
+   * 🛠️ Administrative Endpoint: Securely saves or updates dynamic campus credentials
+   */
+  @Post('config')
+  @UseGuards(TenantAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async saveConfig(
+    @Body() dto: SaveGatewayConfigDto,
+    @CurrentCampus() campusId: string,
+  ) {
+    return this.mpesaService.upsertGatewayConfig(dto, campusId);
+  }
 
   @Post('stk-push')
   @UseGuards(TenantAuthGuard)
@@ -22,7 +57,7 @@ export class MpesaController {
   }
 
   /**
-   * 📡 GET Bridge: Allows Cornellious's UI frontend to short-poll the status of a payment 
+   * 📡 GET Bridge: Allows UI frontends to short-poll the status of a payment 
    */
   @Get('status/:checkoutRequestId')
   @UseGuards(TenantAuthGuard)
@@ -38,7 +73,6 @@ export class MpesaController {
     @Ip() ipAddress: string,
   ) {
     // 🛡️ SECURITY LAYER: Production IP whitelist filtering gate
-    // Safaricom Daraja Production callback endpoints push from known subnets
     const allowedIps = ['196.201.214.', '196.201.213.', '196.201.212.', '127.0.0.1', '::1'];
     const isWhitelisted = allowedIps.some(range => ipAddress.startsWith(range));
     
