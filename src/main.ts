@@ -6,6 +6,13 @@ import { TenantInterceptor } from './common/interceptors/tenant.interceptor';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
+  // 🔓 Enable CORS so your Vercel frontend can talk to this backend
+  app.enableCors({
+    origin: '*', // For development. You can restrict this to your specific Vercel URL later!
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
+
   // Set global API prefix
   app.setGlobalPrefix('api');
   
